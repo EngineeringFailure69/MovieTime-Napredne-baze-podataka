@@ -34,3 +34,41 @@ C:\Users\Nemanja\Desktop\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\ref
 C:\Users\Nemanja\Desktop\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\backend.pdb
 C:\Users\Nemanja\Desktop\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\backend.genruntimeconfig.cache
 C:\Users\Nemanja\Desktop\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\ref\backend.dll
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\appsettings.Development.json
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\appsettings.json
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\backend.exe
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\backend.deps.json
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\backend.runtimeconfig.json
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\backend.dll
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\backend.pdb
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\Microsoft.AspNetCore.OpenApi.dll
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\Microsoft.Bcl.AsyncInterfaces.dll
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\Microsoft.OpenApi.dll
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\Neo4j.Driver.dll
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\Swashbuckle.AspNetCore.Swagger.dll
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\Swashbuckle.AspNetCore.SwaggerGen.dll
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\Swashbuckle.AspNetCore.SwaggerUI.dll
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\backend.csproj.AssemblyReference.cache
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\backend.GeneratedMSBuildEditorConfig.editorconfig
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\backend.AssemblyInfoInputs.cache
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\backend.AssemblyInfo.cs
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\backend.csproj.CoreCompileInputs.cache
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\backend.MvcApplicationPartsAssemblyInfo.cs
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\backend.MvcApplicationPartsAssemblyInfo.cache
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\backend.sourcelink.json
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\staticwebassets.build.json
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\staticwebassets.development.json
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\staticwebassets\msbuild.backend.Microsoft.AspNetCore.StaticWebAssets.props
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\staticwebassets\msbuild.build.backend.props
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\staticwebassets\msbuild.buildMultiTargeting.backend.props
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\staticwebassets\msbuild.buildTransitive.backend.props
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\staticwebassets.pack.json
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\scopedcss\bundle\backend.styles.css
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\backend.csproj.CopyComplete
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\backend.dll
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\refint\backend.dll
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\backend.pdb
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\backend.genruntimeconfig.cache
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\ref\backend.dll
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\DevOne.Security.Cryptography.BCrypt.dll
+D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\BCrypt.Net-Next.dll
