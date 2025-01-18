@@ -110,3 +110,5 @@ C:\Users\msava\OneDrive\Desktop\IV GODINA\SEMESTAR 7\NAPREDNE BAZE PODATAKA\Movi
 C:\Users\msava\OneDrive\Desktop\IV GODINA\SEMESTAR 7\NAPREDNE BAZE PODATAKA\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\backend.pdb
 C:\Users\msava\OneDrive\Desktop\IV GODINA\SEMESTAR 7\NAPREDNE BAZE PODATAKA\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\backend.genruntimeconfig.cache
 C:\Users\msava\OneDrive\Desktop\IV GODINA\SEMESTAR 7\NAPREDNE BAZE PODATAKA\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\ref\backend.dll
+C:\Users\Nemanja\Desktop\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\DevOne.Security.Cryptography.BCrypt.dll
+C:\Users\Nemanja\Desktop\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\BCrypt.Net-Next.dll
