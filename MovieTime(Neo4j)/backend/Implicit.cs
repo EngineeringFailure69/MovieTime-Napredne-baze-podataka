@@ -1,0 +1,2 @@
+global using Neo4j.Driver;
+global using Microsoft.AspNetCore.Mvc;
