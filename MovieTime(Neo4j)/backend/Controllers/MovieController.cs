@@ -12,9 +12,20 @@ public class MovieController : ControllerBase
 
     [HttpPost("AddMovie")]
 
-    public async Task<ActionResult> AddMovie([FromBody] Movie movie) {
+    public async Task<ActionResult> AddMovie([FromForm] Movie movie , IFormFile image) {
         try
         {
+            if(image == null || image.Length == 0)
+            {
+                return BadRequest("Image not found");
+            }
+            byte[] fileBytes;
+            using (var stream = image.OpenReadStream())
+            {
+                fileBytes = new byte[image.Length];
+                await stream.ReadAsync(fileBytes, 0, (int)image.Length);
+            }
+            string base64Image = Convert.ToBase64String(fileBytes);
             await using var session = _neo4jDriver.AsyncSession();
 
             var query = @"
@@ -24,7 +35,8 @@ public class MovieController : ControllerBase
               Genre: $genre, 
               AvgScore: $avgScore,
               Description: $description,
-              Duration: $duration
+              Duration: $duration,
+              Image: $image
             })
             RETURN m
             ";
@@ -35,12 +47,13 @@ public class MovieController : ControllerBase
                 genre = movie.Genre,
                 avgScore = movie.AvgScore,
                 description = movie.Description,
-                duration = movie.Duration
+                duration = movie.Duration,
+                image = base64Image
             };
 
             var result = await session.RunAsync(query, parameters);
             var record = await result.SingleAsync();
-            return Ok($"Movie {movie.Name} has been successfully added.");
+            return Ok($"Movie {movie.Name} has been successfully added. {movie.Image}");
         }
         catch (Exception ex)
         {
@@ -61,7 +74,8 @@ public class MovieController : ControllerBase
                    m.Genre AS Genre, 
                    m.AvgScore AS AvgScore, 
                    m.Description AS Description, 
-                   m.Duration AS Duration
+                   m.Duration AS Duration,
+                   m.Image as Image
             ";
 
             var movies = new List<Movie>();
@@ -75,7 +89,8 @@ public class MovieController : ControllerBase
                     Genre = record["Genre"].As<string>(),
                     AvgScore = record["AvgScore"].As<double>(),
                     Description = record["Description"].As<string>(),
-                    Duration = record["Duration"].As<int>()
+                    Duration = record["Duration"].As<int>(),
+                    Image = record["Image"].As<string>(),
                 };
 
                 movies.Add(movie);
@@ -124,7 +139,8 @@ public class MovieController : ControllerBase
                 m.Genre = $genre, 
                 m.AvgScore = $avgScore,
                 m.Description = $description,
-                m.Duration = $duration
+                m.Duration = $duration,
+                m.Image = $image
             ";
 
             var parameters = new
@@ -134,7 +150,8 @@ public class MovieController : ControllerBase
                 genre = movie.Genre,
                 avgScore = movie.AvgScore,
                 description = movie.Description,
-                duration = movie.Duration
+                duration = movie.Duration,
+                image = movie.Image,
             };
 
             var result = await session.RunAsync(query, parameters);

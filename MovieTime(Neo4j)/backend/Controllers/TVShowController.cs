@@ -11,9 +11,20 @@ public class TVShowController : ControllerBase
     }
 
     [HttpPost("AddTVShow")]
-    public async Task<ActionResult> AddTVShow([FromBody] TVShow tvShow) {
+    public async Task<ActionResult> AddTVShow([FromForm] TVShow tvShow , IFormFile image) {
         try
         {
+            if(image == null || image.Length == 0)
+            {
+                return BadRequest("Image not found");
+            }
+            byte[] fileBytes;
+            using (var stream = image.OpenReadStream())
+            {
+                fileBytes = new byte[image.Length];
+                await stream.ReadAsync(fileBytes, 0, (int)image.Length);
+            }
+            string base64Image = Convert.ToBase64String(fileBytes);
             await using var session = _neo4jDriver.AsyncSession();
 
             var query = @"
@@ -23,7 +34,8 @@ public class TVShowController : ControllerBase
               Genre: $genre, 
               AvgScore: $avgScore,
               Description: $description,
-              NumOfSeasons: $numOfSeasons
+              NumOfSeasons: $numOfSeasons,
+              Image: $image
             })
             RETURN ts
             ";
@@ -34,7 +46,8 @@ public class TVShowController : ControllerBase
                 genre = tvShow.Genre,
                 avgScore = tvShow.AvgScore,
                 description = tvShow.Description,
-                numOfSeasons = tvShow.NumOfSeasons
+                numOfSeasons = tvShow.NumOfSeasons,
+                image = base64Image,
             };
 
             var result = await session.RunAsync(query, parameters);
@@ -60,7 +73,8 @@ public class TVShowController : ControllerBase
                    ts.Genre AS Genre, 
                    ts.AvgScore AS AvgScore, 
                    ts.Description AS Description, 
-                   ts.NumOfSeasons AS NumOfSeasons
+                   ts.NumOfSeasons AS NumOfSeasons,
+                   ts.Image as Image
             ";
 
             var tvShows = new List<TVShow>();
@@ -74,7 +88,8 @@ public class TVShowController : ControllerBase
                     Genre = record["Genre"].As<string>(),
                     AvgScore = record["AvgScore"].As<double>(),
                     Description = record["Description"].As<string>(),
-                    NumOfSeasons = record["NumOfSeasons"].As<int>()
+                    NumOfSeasons = record["NumOfSeasons"].As<int>(),
+                    Image = record["Image"].As<string>(),
                 };
 
                 tvShows.Add(tvShow);
@@ -123,7 +138,8 @@ public class TVShowController : ControllerBase
                 ts.Genre = $genre, 
                 ts.AvgScore = $avgScore,
                 ts.Description = $description,
-                ts.NumOfSeasons = $numOfSeasons
+                ts.NumOfSeasons = $numOfSeasons,
+                ts.Image = $image
             ";
 
             var parameters = new
@@ -133,7 +149,8 @@ public class TVShowController : ControllerBase
                 genre = tvShow.Genre,
                 avgScore = tvShow.AvgScore,
                 description = tvShow.Description,
-                numOfSeasons = tvShow.NumOfSeasons
+                numOfSeasons = tvShow.NumOfSeasons,
+                image = tvShow.Image,
             };
 
             var result = await session.RunAsync(query, parameters);

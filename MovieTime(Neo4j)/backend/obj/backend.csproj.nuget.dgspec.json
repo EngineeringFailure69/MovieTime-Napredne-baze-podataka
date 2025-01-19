@@ -49,10 +49,6 @@
               "target": "Package",
               "version": "[4.0.3, )"
             },
-            "Bcrypt": {
-              "target": "Package",
-              "version": "[1.0.0, )"
-            },
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
               "version": "[8.0.4, )"
