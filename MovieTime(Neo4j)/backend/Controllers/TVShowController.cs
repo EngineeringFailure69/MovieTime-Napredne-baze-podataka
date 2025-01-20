@@ -128,9 +128,20 @@ public class TVShowController : ControllerBase
     }
 
     [HttpPut("UpdateTVShow")]
-    public async Task<ActionResult> UpdateTVShow([FromBody]TVShow tvShow) {
+    public async Task<ActionResult> UpdateTVShow([FromForm]TVShow tvShow , IFormFile image) {
         try
         {
+            if(image == null || image.Length == 0)
+            {
+                return BadRequest("Image not found");
+            }
+            byte[] fileBytes;
+            using (var stream = image.OpenReadStream())
+            {
+                fileBytes = new byte[image.Length];
+                await stream.ReadAsync(fileBytes, 0, (int)image.Length);
+            }
+            string base64Image = Convert.ToBase64String(fileBytes);
             using var session = _neo4jDriver.AsyncSession();
             var query = @"
             MATCH (ts:TVShow {Name: $name})
@@ -150,7 +161,7 @@ public class TVShowController : ControllerBase
                 avgScore = tvShow.AvgScore,
                 description = tvShow.Description,
                 numOfSeasons = tvShow.NumOfSeasons,
-                image = tvShow.Image,
+                image = base64Image,
             };
 
             var result = await session.RunAsync(query, parameters);

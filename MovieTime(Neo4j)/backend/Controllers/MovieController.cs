@@ -36,7 +36,8 @@ public class MovieController : ControllerBase
               AvgScore: $avgScore,
               Description: $description,
               Duration: $duration,
-              Image: $image
+              Image: $image,
+              Link: $link
             })
             RETURN m
             ";
@@ -48,7 +49,8 @@ public class MovieController : ControllerBase
                 avgScore = movie.AvgScore,
                 description = movie.Description,
                 duration = movie.Duration,
-                image = base64Image
+                image = base64Image,
+                link = movie.Link,
             };
 
             var result = await session.RunAsync(query, parameters);
@@ -75,7 +77,8 @@ public class MovieController : ControllerBase
                    m.AvgScore AS AvgScore, 
                    m.Description AS Description, 
                    m.Duration AS Duration,
-                   m.Image as Image
+                   m.Image as Image,
+                   m.Link as Link,
             ";
 
             var movies = new List<Movie>();
@@ -91,6 +94,7 @@ public class MovieController : ControllerBase
                     Description = record["Description"].As<string>(),
                     Duration = record["Duration"].As<int>(),
                     Image = record["Image"].As<string>(),
+                    Link = record["Link"].As<string>(),
                 };
 
                 movies.Add(movie);
@@ -129,9 +133,20 @@ public class MovieController : ControllerBase
     }
 
     [HttpPut("UpdateMovie")]
-    public async Task<ActionResult> UpdateMovie([FromBody]Movie movie) {
+    public async Task<ActionResult> UpdateMovie([FromForm]Movie movie , IFormFile image) {
         try
         {
+            if(image == null || image.Length == 0)
+            {
+                return BadRequest("Image not found");
+            }
+            byte[] fileBytes;
+            using (var stream = image.OpenReadStream())
+            {
+                fileBytes = new byte[image.Length];
+                await stream.ReadAsync(fileBytes, 0, (int)image.Length);
+            }
+            string base64Image = Convert.ToBase64String(fileBytes);
             using var session = _neo4jDriver.AsyncSession();
             var query = @"
             MATCH (m:Movie {Name: $name})
@@ -140,7 +155,8 @@ public class MovieController : ControllerBase
                 m.AvgScore = $avgScore,
                 m.Description = $description,
                 m.Duration = $duration,
-                m.Image = $image
+                m.Image = $image,
+                m.Link = $link
             ";
 
             var parameters = new
@@ -151,7 +167,8 @@ public class MovieController : ControllerBase
                 avgScore = movie.AvgScore,
                 description = movie.Description,
                 duration = movie.Duration,
-                image = movie.Image,
+                image = base64Image,
+                link = movie.Link,
             };
 
             var result = await session.RunAsync(query, parameters);

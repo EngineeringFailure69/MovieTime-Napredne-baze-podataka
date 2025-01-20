@@ -111,3 +111,8 @@ C:\Users\msava\OneDrive\Desktop\IV GODINA\SEMESTAR 7\NAPREDNE BAZE PODATAKA\Movi
 C:\Users\msava\OneDrive\Desktop\IV GODINA\SEMESTAR 7\NAPREDNE BAZE PODATAKA\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\backend.genruntimeconfig.cache
 C:\Users\msava\OneDrive\Desktop\IV GODINA\SEMESTAR 7\NAPREDNE BAZE PODATAKA\MovieTime\MovieTime(Neo4j)\backend\obj\Debug\net8.0\ref\backend.dll
 C:\Users\Nemanja\Desktop\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\BCrypt.Net-Next.dll
+C:\Users\Nemanja\Desktop\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\Microsoft.IdentityModel.Abstractions.dll
+C:\Users\Nemanja\Desktop\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\Microsoft.IdentityModel.JsonWebTokens.dll
+C:\Users\Nemanja\Desktop\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\Microsoft.IdentityModel.Logging.dll
+C:\Users\Nemanja\Desktop\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\Microsoft.IdentityModel.Tokens.dll
+C:\Users\Nemanja\Desktop\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\System.IdentityModel.Tokens.Jwt.dll
