@@ -101,6 +101,53 @@ public class TVShowController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+    [HttpGet("GetPageTVShows/{page}")]
+    public async Task<ActionResult> GetPageTVShows(int page = 1)
+    {
+        try
+        {
+            if(page < 1)
+                return BadRequest("page must be greater or equal to 1");
+            int limitPage = 10;
+            await using var session = _neo4jDriver.AsyncSession();
+
+            var query = @"
+            MATCH (ts:TVShow)
+            RETURN ts.Name AS Name, 
+                   ts.YearOfRelease AS YearOfRelease, 
+                   ts.Genre AS Genre, 
+                   ts.AvgScore AS AvgScore, 
+                   ts.Description AS Description, 
+                   ts.NumOfSeasons AS NumOfSeasons,
+                   ts.Image as Image
+            SKIP $skip
+            LIMIT $limit
+            ";
+
+            var tvShows = new List<TVShow>();
+
+            var result = await session.RunAsync(query , new {skip = (page-1)*limitPage , limit = limitPage}); // pokrece query
+            await foreach(var record in result) 
+            {
+                var tvShow = new TVShow {
+                    Name = record["Name"].As<string>(),
+                    YearOfRelease = record["YearOfRelease"].As<int>(),
+                    Genre = record["Genre"].As<string>(),
+                    AvgScore = record["AvgScore"].As<double>(),
+                    Description = record["Description"].As<string>(),
+                    NumOfSeasons = record["NumOfSeasons"].As<int>(),
+                    Image = record["Image"].As<string>(),
+                };
+
+                tvShows.Add(tvShow);
+            }
+            return Ok(tvShows); 
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
 
     [HttpDelete("DeleteTVShow/{Name}")]
     public async Task<ActionResult> DeleteTVShow(string Name) {

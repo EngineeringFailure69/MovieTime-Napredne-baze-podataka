@@ -78,7 +78,7 @@ public class MovieController : ControllerBase
                    m.Description AS Description, 
                    m.Duration AS Duration,
                    m.Image as Image,
-                   m.Link as Link,
+                   m.Link as Link
             ";
 
             var movies = new List<Movie>();
@@ -106,6 +106,54 @@ public class MovieController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+
+     [HttpGet("GetPageMovies/{page}")]
+    public async Task<ActionResult> GetPageMovies(int page = 1)
+    {
+        try
+        { 
+            if(page < 1)
+                return BadRequest("Page must be greated than 0");
+            await using var session = _neo4jDriver.AsyncSession();
+            int limitPage = 10;
+            var query = @"
+            MATCH (m:Movie)
+            RETURN m.Name AS Name, 
+                   m.YearOfRelease AS YearOfRelease, 
+                   m.Genre AS Genre, 
+                   m.AvgScore AS AvgScore, 
+                   m.Description AS Description, 
+                   m.Duration AS Duration,
+                   m.Image as Image,
+                   m.Link as Link
+            SKIP $skip
+            LIMIT $limit";
+
+            var movies = new List<Movie>();
+
+            var result = await session.RunAsync(query , new {skip = (page-1)*limitPage , limit = limitPage});
+            await foreach(var record in result) 
+            {
+                var movie = new Movie {
+                    Name = record["Name"].As<string>(),
+                    YearOfRelease = record["YearOfRelease"].As<int>(),
+                    Genre = record["Genre"].As<string>(),
+                    AvgScore = record["AvgScore"].As<double>(),
+                    Description = record["Description"].As<string>(),
+                    Duration = record["Duration"].As<int>(),
+                    Image = record["Image"].As<string>(),
+                    Link = record["Link"].As<string>(),
+                };
+
+                movies.Add(movie);
+            }
+            return Ok(movies); 
+        }
+        catch(Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    } 
 
     [HttpDelete("DeleteMovie/{Name}")]
     public async Task<ActionResult> DeleteMovie(string Name) {
