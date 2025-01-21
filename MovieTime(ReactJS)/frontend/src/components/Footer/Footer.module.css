@@ -1,0 +1,25 @@
+.footer{
+    height: 80px;
+    background-color: transparent;
+    text-align: center;
+    color: white;
+    position: sticky;
+    display: flex;
+    align-items: center;
+    justify-content: right;
+    padding-right: 20px;
+}
+
+.footer a {
+    margin-left: 10px; 
+    margin-right: 10px; 
+}
+
+.footer a svg {  
+    font-size: 20px;  
+}
+
+.footerContainer{
+    display: flex;
+}
+
