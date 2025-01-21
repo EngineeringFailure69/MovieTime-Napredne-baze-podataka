@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Image, Box } from "@chakra-ui/react";
 import { AspectRatio, HStack } from "@chakra-ui/react"
@@ -24,13 +24,15 @@ const TVPrograms = () => {
     const [tvShows, setTvShows] = useState([]);
     const [selectedTVProgram, setSelectedTVProgram] = useState(null);
     const [programType, setProgramType] = useState('');
-    const [overlayVisible, setOverlayVisible] = useState(false); 
+    const [overlayVisible, setOverlayVisible] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1); 
+
     const navigate = useNavigate();
 
-    useEffect(() => {    
+    useEffect(() => {   
         const fetchTVPrograms = async () => {
           try {
-            const moviesResponse = await axios.get('http://localhost:5023/Movie/GetAll');
+            const moviesResponse = await axios.get(`http://localhost:5023/Movie/GetPageMovies/${currentPage}`);
             setMovies(moviesResponse.data);
     
             const tvShowsResponse = await axios.get('http://localhost:5023/TVShow/GetAll');
@@ -41,7 +43,8 @@ const TVPrograms = () => {
         };
     
         fetchTVPrograms();
-      }, [navigate]);
+
+      }, [currentPage]);
 
       const handleImageClick = (src, type) => {
         setSelectedTVProgram(src); 
@@ -60,6 +63,14 @@ const TVPrograms = () => {
         return match ? match[1] : null;
       };
 
+      const handlePageChange = async (src) => {
+        const newPage = Number(src.page);
+        setCurrentPage(newPage);
+        await new Promise(resolve => setTimeout(resolve, 500));  
+        const element = document.getElementById("movies");
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
+      };
+  
       return (
         <>
             <div className='sekcije'>
@@ -108,7 +119,7 @@ const TVPrograms = () => {
                 </div>
               </section>
               <section id="pagination">
-                <PaginationRoot count={10} pageSize={2} defaultPage={1} size='md'>
+                <PaginationRoot count={10} pageSize={2} defaultPage={1} size='md' onPageChange={handlePageChange} >
                   <HStack justify="center">
                     <PaginationPrevTrigger style={{backgroundColor :'#007bff'}} _hover={{color: 'black'}}/>
                     <PaginationItems style={{backgroundColor :'#007bff' , fontWeight: 'bold'}} _hover={{color: 'black'}} />

@@ -78,7 +78,6 @@ C:\Users\msava\OneDrive\Desktop\IV GODINA\SEMESTAR 7\NAPREDNE BAZE PODATAKA\Movi
 C:\Users\msava\OneDrive\Desktop\IV GODINA\SEMESTAR 7\NAPREDNE BAZE PODATAKA\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\backend.runtimeconfig.json
 C:\Users\msava\OneDrive\Desktop\IV GODINA\SEMESTAR 7\NAPREDNE BAZE PODATAKA\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\backend.dll
 C:\Users\msava\OneDrive\Desktop\IV GODINA\SEMESTAR 7\NAPREDNE BAZE PODATAKA\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\backend.pdb
-C:\Users\msava\OneDrive\Desktop\IV GODINA\SEMESTAR 7\NAPREDNE BAZE PODATAKA\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\DevOne.Security.Cryptography.BCrypt.dll
 C:\Users\msava\OneDrive\Desktop\IV GODINA\SEMESTAR 7\NAPREDNE BAZE PODATAKA\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\BCrypt.Net-Next.dll
 C:\Users\msava\OneDrive\Desktop\IV GODINA\SEMESTAR 7\NAPREDNE BAZE PODATAKA\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\Microsoft.AspNetCore.OpenApi.dll
 C:\Users\msava\OneDrive\Desktop\IV GODINA\SEMESTAR 7\NAPREDNE BAZE PODATAKA\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\Microsoft.Bcl.AsyncInterfaces.dll
@@ -120,3 +119,8 @@ D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo
 D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\Microsoft.IdentityModel.Logging.dll
 D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\Microsoft.IdentityModel.Tokens.dll
 D:\LAZA SVE\Faks\Cetvrta godina\Faks  -  semestar VII\Napredne baze\Projekat\Neo4J\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\System.IdentityModel.Tokens.Jwt.dll
+C:\Users\msava\OneDrive\Desktop\IV GODINA\SEMESTAR 7\NAPREDNE BAZE PODATAKA\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\Microsoft.IdentityModel.Abstractions.dll
+C:\Users\msava\OneDrive\Desktop\IV GODINA\SEMESTAR 7\NAPREDNE BAZE PODATAKA\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\Microsoft.IdentityModel.JsonWebTokens.dll
+C:\Users\msava\OneDrive\Desktop\IV GODINA\SEMESTAR 7\NAPREDNE BAZE PODATAKA\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\Microsoft.IdentityModel.Logging.dll
+C:\Users\msava\OneDrive\Desktop\IV GODINA\SEMESTAR 7\NAPREDNE BAZE PODATAKA\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\Microsoft.IdentityModel.Tokens.dll
+C:\Users\msava\OneDrive\Desktop\IV GODINA\SEMESTAR 7\NAPREDNE BAZE PODATAKA\MovieTime\MovieTime(Neo4j)\backend\bin\Debug\net8.0\System.IdentityModel.Tokens.Jwt.dll

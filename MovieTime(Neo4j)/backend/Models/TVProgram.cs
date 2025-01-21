@@ -1,5 +1,5 @@
 public class TVProgram {
-    [MaxLength(30)]
+    [MaxLength(50)]
     public required string Name { get; set; }
 
     [Range(1950, 2100)]
