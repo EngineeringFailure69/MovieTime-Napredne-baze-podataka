@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Image, Box } from "@chakra-ui/react";
 import { AspectRatio, HStack } from "@chakra-ui/react"
+import styles from './TVPrograms.module.css';
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -17,6 +18,9 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination"
+import MenuSort from '../MenuSort/MenuSort';
+import MenuFilter from '../MenuFilter/MenuFilter';
+import Search from '../Search/Search';
 
 
 const TVPrograms = () => {
@@ -26,8 +30,6 @@ const TVPrograms = () => {
     const [programType, setProgramType] = useState('');
     const [overlayVisible, setOverlayVisible] = useState(false);
     const [currentPage, setCurrentPage] = useState(1); 
-
-    const navigate = useNavigate();
 
     useEffect(() => {   
         const fetchTVPrograms = async () => {
@@ -75,8 +77,15 @@ const TVPrograms = () => {
         <>
             <div className='sekcije'>
               <section id="movies">
-              <div className="home-text">
-                <p><strong>Filmovi:</strong></p>
+              <div className={`${styles.programOptionsContainer}`}>
+                <div className="home-text">
+                  <p><strong>Filmovi:</strong></p>
+                </div>
+                <div className={`${styles.menuContainer}`}>
+                  <Search />
+                  <MenuFilter />
+                  <MenuSort />
+                </div>
               </div>
                 <div className="items-container">
                   <div className="menu-container">
@@ -97,8 +106,15 @@ const TVPrograms = () => {
                 </div>
               </section>
               <section id="tvshows">
-              <div className="home-text">
-                <p><strong>Serije:</strong></p>
+              <div className={`${styles.programOptionsContainer}`}>
+                <div className="home-text">
+                  <p><strong>Serije:</strong></p>
+                </div>
+                <div className={`${styles.menuContainer}`}>
+                  <Search />
+                  <MenuFilter />
+                  <MenuSort />
+                </div>
               </div>
                 <div className="items-container">
                   <div className="menu-container">
