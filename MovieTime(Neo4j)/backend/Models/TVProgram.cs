@@ -16,4 +16,7 @@ public class TVProgram {
     
     [MaxLength(5000)]
     public string? Image { get; set; }
+
+    [MaxLength(100)]
+    public required string Link { get; set; }
 }

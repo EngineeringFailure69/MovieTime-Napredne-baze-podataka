@@ -196,6 +196,17 @@ public class UserController : ControllerBase
                 feedback
             });
 
+            var updateAvgScoreQuery = @"
+            MATCH (m:Movie {Name: $movieName})<-[r:RATED]-(u:User)
+            WITH m, AVG(r.Score) AS averageScore
+            SET m.AvgScore = averageScore
+            ";
+
+            await session.RunAsync(updateAvgScoreQuery, new
+            {
+                movieName
+            });
+
             return Ok("Movie has been successfully rated");
         }
         catch(Exception e)
@@ -227,6 +238,17 @@ public class UserController : ControllerBase
                 userEmail,
                 score, 
                 feedback
+            });
+
+            var updateAvgScoreQuery = @"
+            MATCH (ts:TVShow {Name: $TVShowName})<-[r:RATED]-(u:User)
+            WITH ts, AVG(r.Score) AS averageScore
+            SET ts.AvgScore = averageScore
+            ";
+
+            await session.RunAsync(updateAvgScoreQuery, new
+            {
+                TVShowName
             });
 
             return Ok("TV show has been successfully rated");

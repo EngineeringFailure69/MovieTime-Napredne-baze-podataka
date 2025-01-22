@@ -1,3 +1,5 @@
+using System.CodeDom.Compiler;
+
 [ApiController]
 [Route("[controller]")]
 public class TVShowController : ControllerBase
@@ -35,7 +37,8 @@ public class TVShowController : ControllerBase
               AvgScore: $avgScore,
               Description: $description,
               NumOfSeasons: $numOfSeasons,
-              Image: $image
+              Image: $image,
+              Link: $link
             })
             RETURN ts
             ";
@@ -48,6 +51,7 @@ public class TVShowController : ControllerBase
                 description = tvShow.Description,
                 numOfSeasons = tvShow.NumOfSeasons,
                 image = base64Image,
+                link = tvShow.Link,
             };
 
             var result = await session.RunAsync(query, parameters);
@@ -74,7 +78,8 @@ public class TVShowController : ControllerBase
                    ts.AvgScore AS AvgScore, 
                    ts.Description AS Description, 
                    ts.NumOfSeasons AS NumOfSeasons,
-                   ts.Image as Image
+                   ts.Image as Image,
+                   ts.Link as Link
             ";
 
             var tvShows = new List<TVShow>();
@@ -90,6 +95,7 @@ public class TVShowController : ControllerBase
                     Description = record["Description"].As<string>(),
                     NumOfSeasons = record["NumOfSeasons"].As<int>(),
                     Image = record["Image"].As<string>(),
+                    Link = record["Link"].As<string>(),
                 };
 
                 tvShows.Add(tvShow);
@@ -119,7 +125,8 @@ public class TVShowController : ControllerBase
                    ts.AvgScore AS AvgScore, 
                    ts.Description AS Description, 
                    ts.NumOfSeasons AS NumOfSeasons,
-                   ts.Image as Image
+                   ts.Image as Image,
+                   ts.Link as Link
             SKIP $skip
             LIMIT $limit
             ";
@@ -137,6 +144,7 @@ public class TVShowController : ControllerBase
                     Description = record["Description"].As<string>(),
                     NumOfSeasons = record["NumOfSeasons"].As<int>(),
                     Image = record["Image"].As<string>(),
+                    Link = record["Link"].As<string>(),
                 };
 
                 tvShows.Add(tvShow);
@@ -197,7 +205,8 @@ public class TVShowController : ControllerBase
                 ts.AvgScore = $avgScore,
                 ts.Description = $description,
                 ts.NumOfSeasons = $numOfSeasons,
-                ts.Image = $image
+                ts.Image = $image,
+                ts.Link = $link
             ";
 
             var parameters = new
@@ -209,10 +218,207 @@ public class TVShowController : ControllerBase
                 description = tvShow.Description,
                 numOfSeasons = tvShow.NumOfSeasons,
                 image = base64Image,
+                link = tvShow.Link,
             };
 
             var result = await session.RunAsync(query, parameters);
             return Ok($"TVShow: {tvShow.Name} has been successfully updated.");
+        }
+        catch(Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpGet("GetTVShowAlphabeticalOrder/{asc}/{page}")]
+    public async Task<ActionResult> GetTVShowAlphabeticalOrder(bool asc , int page)
+    {
+        try
+        {
+             if(page < 1)
+                return BadRequest("Page must be greated than 0");
+            await using var session = _neo4jDriver.AsyncSession();
+            int limitPage = 10;
+            string order = asc ? "ASC" : "DESC";
+            var query = $@"
+            MATCH (ts:TVShow)
+            RETURN ts.Name AS Name, 
+                   ts.YearOfRelease AS YearOfRelease, 
+                   ts.Genre AS Genre, 
+                   ts.AvgScore AS AvgScore, 
+                   ts.Description AS Description, 
+                   ts.NumOfSeasons AS NumOfSeasons,
+                   ts.Image as Image,
+                   ts.Link as Link
+            ORDER BY ts.Name {order}
+            SKIP $skip
+            LIMIT $limit";
+
+            var tvShows = new List<TVShow>();
+
+            var result = await session.RunAsync(query , new {skip = (page-1)*limitPage , limit = limitPage});
+            await foreach(var record in result) 
+            {
+                var tvShow = new TVShow {
+                    Name = record["Name"].As<string>(),
+                    YearOfRelease = record["YearOfRelease"].As<int>(),
+                    Genre = record["Genre"].As<string>(),
+                    AvgScore = record["AvgScore"].As<double>(),
+                    Description = record["Description"].As<string>(),
+                    NumOfSeasons = record["NumOfSeasons"].As<int>(),
+                    Image = record["Image"].As<string>(),
+                    Link = record["Link"].As<string>(),
+                };
+
+                tvShows.Add(tvShow);
+            }
+            return Ok(tvShows); 
+        }
+        catch(Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+    [HttpGet("GetTVShowYearOrder/{latest}/{page}")]
+    public async Task<ActionResult> GetTVShowYearOrder(bool latest , int page)
+    {
+        try
+        {
+             if(page < 1)
+                return BadRequest("Page must be greated than 0");
+            await using var session = _neo4jDriver.AsyncSession();
+            int limitPage = 10;
+            string order = latest ? "DESC" : "ASC";
+            var query = $@"
+            MATCH (ts:TVShow)
+            RETURN ts.Name AS Name, 
+                   ts.YearOfRelease AS YearOfRelease, 
+                   ts.Genre AS Genre, 
+                   ts.AvgScore AS AvgScore, 
+                   ts.Description AS Description, 
+                   ts.NumOfSeasons AS NumOfSeasons,
+                   ts.Image as Image,
+                   ts.Link as Link
+            ORDER BY ts.YearOfRelease {order}
+            SKIP $skip
+            LIMIT $limit";
+
+            var tvShows = new List<TVShow>();
+
+            var result = await session.RunAsync(query , new {skip = (page-1)*limitPage , limit = limitPage});
+            await foreach(var record in result) 
+            {
+                var tvShow = new TVShow {
+                    Name = record["Name"].As<string>(),
+                    YearOfRelease = record["YearOfRelease"].As<int>(),
+                    Genre = record["Genre"].As<string>(),
+                    AvgScore = record["AvgScore"].As<double>(),
+                    Description = record["Description"].As<string>(),
+                    NumOfSeasons = record["NumOfSeasons"].As<int>(),
+                    Image = record["Image"].As<string>(),
+                    Link = record["Link"].As<string>(),
+                };
+
+                tvShows.Add(tvShow);
+            }
+            return Ok(tvShows); 
+        }
+        catch(Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpGet("GetTVShowWithGenre/{genreShow}/{page}")]
+    public async Task<ActionResult> GetTVShowWithGenre(string genreShow , int page)
+    {
+        try
+        {
+            if(page < 1)
+                return BadRequest("Page must be greated than 0");
+            await using var session = _neo4jDriver.AsyncSession();
+            int limitPage = 10;
+            var query = $@"
+            MATCH (ts:TVShow)
+            WHERE ts.Genre = $genre
+            RETURN ts.Name AS Name, 
+                   ts.YearOfRelease AS YearOfRelease, 
+                   ts.Genre AS Genre, 
+                   ts.AvgScore AS AvgScore, 
+                   ts.Description AS Description, 
+                   ts.NumOfSeasons AS NumOfSeasons,
+                   ts.Image as Image,
+                   ts.Link as Link
+            SKIP $skip
+            LIMIT $limit";
+
+            var tvShows = new List<TVShow>();
+
+            var result = await session.RunAsync(query , new {skip = (page-1)*limitPage , limit = limitPage , genre = genreShow});
+            await foreach(var record in result) 
+            {
+                var tvShow = new TVShow {
+                    Name = record["Name"].As<string>(),
+                    YearOfRelease = record["YearOfRelease"].As<int>(),
+                    Genre = record["Genre"].As<string>(),
+                    AvgScore = record["AvgScore"].As<double>(),
+                    Description = record["Description"].As<string>(),
+                    NumOfSeasons = record["NumOfSeasons"].As<int>(),
+                    Image = record["Image"].As<string>(),
+                    Link = record["Link"].As<string>(),
+                };
+
+                tvShows.Add(tvShow);
+            }
+            return Ok(tvShows); 
+        }
+        catch(Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+    [HttpGet("GetTVShowSearch/{search}/{page}")]
+    public async Task<ActionResult> GetTVShowSearch(string search , int page)
+    {
+        try
+        {
+             if(page < 1)
+                return BadRequest("Page must be greated than 0");
+            await using var session = _neo4jDriver.AsyncSession();
+            int limitPage = 10;
+            var query = $@"
+            MATCH (ts:TVShow)
+            WHERE ts.Name STARTS WITH $name
+            RETURN ts.Name AS Name, 
+                   ts.YearOfRelease AS YearOfRelease, 
+                   ts.Genre AS Genre, 
+                   ts.AvgScore AS AvgScore, 
+                   ts.Description AS Description, 
+                   ts.NumOfSeasons AS NumOfSeasons,
+                   ts.Image as Image,
+                   ts.Link as Link
+            SKIP $skip
+            LIMIT $limit";
+
+            var tvShows = new List<TVShow>();
+
+            var result = await session.RunAsync(query , new {skip = (page-1)*limitPage , limit = limitPage , name = search});
+            await foreach(var record in result) 
+            {
+                var tvShow = new TVShow {
+                    Name = record["Name"].As<string>(),
+                    YearOfRelease = record["YearOfRelease"].As<int>(),
+                    Genre = record["Genre"].As<string>(),
+                    AvgScore = record["AvgScore"].As<double>(),
+                    Description = record["Description"].As<string>(),
+                    NumOfSeasons = record["NumOfSeasons"].As<int>(),
+                    Image = record["Image"].As<string>(),
+                    Link = record["Link"].As<string>(),
+                };
+
+                tvShows.Add(tvShow);
+            }
+            return Ok(tvShows); 
         }
         catch(Exception ex)
         {

@@ -227,4 +227,201 @@ public class MovieController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+
+    [HttpGet("GetMoviesAlphabeticalOrder/{asc}/{page}")]
+    public async Task<ActionResult> GetMoviesAlphabeticalOrder(bool asc , int page)
+    {
+        try
+        {
+             if(page < 1)
+                return BadRequest("Page must be greated than 0");
+            await using var session = _neo4jDriver.AsyncSession();
+            int limitPage = 10;
+            string order = asc ? "ASC" : "DESC";
+            var query = $@"
+            MATCH (m:Movie)
+            RETURN m.Name AS Name, 
+                   m.YearOfRelease AS YearOfRelease, 
+                   m.Genre AS Genre, 
+                   m.AvgScore AS AvgScore, 
+                   m.Description AS Description, 
+                   m.Duration AS Duration,
+                   m.Image as Image,
+                   m.Link as Link
+            ORDER BY m.Name {order}
+            SKIP $skip
+            LIMIT $limit";
+
+            var movies = new List<Movie>();
+
+            var result = await session.RunAsync(query , new {skip = (page-1)*limitPage , limit = limitPage});
+            await foreach(var record in result) 
+            {
+                var movie = new Movie {
+                    Name = record["Name"].As<string>(),
+                    YearOfRelease = record["YearOfRelease"].As<int>(),
+                    Genre = record["Genre"].As<string>(),
+                    AvgScore = record["AvgScore"].As<double>(),
+                    Description = record["Description"].As<string>(),
+                    Duration = record["Duration"].As<int>(),
+                    Image = record["Image"].As<string>(),
+                    Link = record["Link"].As<string>(),
+                };
+
+                movies.Add(movie);
+            }
+            return Ok(movies); 
+        }
+        catch(Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+  [HttpGet("GetMoviesYearOrder/{latest}/{page}")]
+    public async Task<ActionResult> GetMoviesYearOrder(bool latest , int page)
+    {
+        try
+        {
+             if(page < 1)
+                return BadRequest("Page must be greated than 0");
+            await using var session = _neo4jDriver.AsyncSession();
+            int limitPage = 10;
+            string order = latest ? "DESC" : "ASC";
+            var query = $@"
+            MATCH (m:Movie)
+            RETURN m.Name AS Name, 
+                   m.YearOfRelease AS YearOfRelease, 
+                   m.Genre AS Genre, 
+                   m.AvgScore AS AvgScore, 
+                   m.Description AS Description, 
+                   m.Duration AS Duration,
+                   m.Image as Image,
+                   m.Link as Link
+            ORDER BY m.YearOfRelease {order}
+            SKIP $skip
+            LIMIT $limit";
+
+            var movies = new List<Movie>();
+
+            var result = await session.RunAsync(query , new {skip = (page-1)*limitPage , limit = limitPage});
+            await foreach(var record in result) 
+            {
+                var movie = new Movie {
+                    Name = record["Name"].As<string>(),
+                    YearOfRelease = record["YearOfRelease"].As<int>(),
+                    Genre = record["Genre"].As<string>(),
+                    AvgScore = record["AvgScore"].As<double>(),
+                    Description = record["Description"].As<string>(),
+                    Duration = record["Duration"].As<int>(),
+                    Image = record["Image"].As<string>(),
+                    Link = record["Link"].As<string>(),
+                };
+
+                movies.Add(movie);
+            }
+            return Ok(movies); 
+        }
+        catch(Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+    [HttpGet("GetMoviesWithGenre/{genreMovie}/{page}")]
+    public async Task<ActionResult> GetMoviesWithGenre(string genreMovie , int page)
+    {
+        try
+        {
+            if(page < 1)
+                return BadRequest("Page must be greated than 0");
+            await using var session = _neo4jDriver.AsyncSession();
+            int limitPage = 10;
+            var query = $@"
+            MATCH (m:Movie)
+            WHERE m.Genre = $genre
+            RETURN m.Name AS Name, 
+                   m.YearOfRelease AS YearOfRelease, 
+                   m.Genre AS Genre, 
+                   m.AvgScore AS AvgScore, 
+                   m.Description AS Description, 
+                   m.Duration AS Duration,
+                   m.Image as Image,
+                   m.Link as Link
+            SKIP $skip
+            LIMIT $limit";
+
+            var movies = new List<Movie>();
+
+            var result = await session.RunAsync(query , new {skip = (page-1)*limitPage , limit = limitPage , genre = genreMovie});
+            await foreach(var record in result) 
+            {
+                var movie = new Movie {
+                    Name = record["Name"].As<string>(),
+                    YearOfRelease = record["YearOfRelease"].As<int>(),
+                    Genre = record["Genre"].As<string>(),
+                    AvgScore = record["AvgScore"].As<double>(),
+                    Description = record["Description"].As<string>(),
+                    Duration = record["Duration"].As<int>(),
+                    Image = record["Image"].As<string>(),
+                    Link = record["Link"].As<string>(),
+                };
+
+                movies.Add(movie);
+            }
+            return Ok(movies); 
+        }
+        catch(Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+    [HttpGet("GetMoviesSearch/{search}/{page}")]
+    public async Task<ActionResult> GetMoviesSearch(string search , int page)
+    {
+        try
+        {
+            if(page < 1)
+                return BadRequest("Page must be greated than 0");
+            await using var session = _neo4jDriver.AsyncSession();
+            int limitPage = 10;
+            var query = $@"
+            MATCH (m:Movie)
+            WHERE m.Name STARTS WITH $name
+            RETURN m.Name AS Name, 
+                   m.YearOfRelease AS YearOfRelease, 
+                   m.Genre AS Genre, 
+                   m.AvgScore AS AvgScore, 
+                   m.Description AS Description, 
+                   m.Duration AS Duration,
+                   m.Image as Image,
+                   m.Link as Link
+            SKIP $skip
+            LIMIT $limit";
+
+            var movies = new List<Movie>();
+
+            var result = await session.RunAsync(query , new {skip = (page-1)*limitPage , limit = limitPage , name = search});
+            await foreach(var record in result) 
+            {
+                var movie = new Movie {
+                    Name = record["Name"].As<string>(),
+                    YearOfRelease = record["YearOfRelease"].As<int>(),
+                    Genre = record["Genre"].As<string>(),
+                    AvgScore = record["AvgScore"].As<double>(),
+                    Description = record["Description"].As<string>(),
+                    Duration = record["Duration"].As<int>(),
+                    Image = record["Image"].As<string>(),
+                    Link = record["Link"].As<string>(),
+                };
+
+                movies.Add(movie);
+            }
+            return Ok(movies); 
+        }
+        catch(Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
 }
