@@ -120,4 +120,120 @@ public class UserController : ControllerBase
         var jwt = new JwtSecurityTokenHandler().WriteToken(token);
         return jwt;
     }
+    
+    [HttpPost("AddFavoriteMovie/{movieName}/{userEmail}")]
+    public async Task<ActionResult> AddFavoriteMovie(string movieName, string userEmail)
+    {
+        try
+        {
+            using var session = _neo4jDriver.AsyncSession();
+            var query = @"
+                MATCH(m:Movie{Name: $movieName})
+                MATCH(u:User{Email: $userEmail})
+                MERGE (u)-[:FAVORITE]->(m)
+            ";
+
+            await session.RunAsync(query, new {
+                movieName,
+                userEmail
+            });
+
+            return Ok("Movie has been successfully added to the favorites");
+        }
+        catch(Exception e)
+        {
+            return BadRequest(e.Message);
+        }
+    }
+
+    [HttpPost("AddFavoriteTVShow/{showName}/{userEmail}")]
+    public async Task<ActionResult> AddFavoriteTVShow(string showName, string userEmail)
+    {
+        try
+        {
+            using var session = _neo4jDriver.AsyncSession();
+            var query = @"
+                MATCH(ts:TVShow{Name: $showName})
+                MATCH(u:User{Email: $userEmail})
+                MERGE (u)-[:FAVORITE]->(ts)
+            ";
+
+            await session.RunAsync(query, new {
+                showName,
+                userEmail
+            });
+
+            return Ok("TV show has been successfully added to the favorites");
+        }
+        catch(Exception e)
+        {
+            return BadRequest(e.Message);
+        }
+    }
+
+    [HttpPost("RateMovie/{movieName}/{userEmail}/{score}/{feedback}")]
+    public async Task<ActionResult> RateMovie(string movieName, string userEmail, double score, string feedback)
+    {
+        try
+        {
+            if (score < 0.0 || score > 10.0)
+            {
+                return BadRequest("Score must be between 0 and 10.");
+            }
+
+            using var session = _neo4jDriver.AsyncSession();
+            var query = @"
+                MATCH(m:Movie{Name: $movieName})
+                MATCH(u:User{Email: $userEmail})
+                CREATE (u)-[r:RATED]->(m)
+                SET r.Score = $score, r.Feedback = $feedback
+            ";
+
+            await session.RunAsync(query, new {
+                movieName,
+                userEmail,
+                score, 
+                feedback
+            });
+
+            return Ok("Movie has been successfully rated");
+        }
+        catch(Exception e)
+        {
+            return BadRequest(e.Message);
+        }
+    }
+
+    [HttpPost("RateTVShow/{TVShowName}/{userEmail}/{score}/{feedback}")]
+    public async Task<ActionResult> RateTVShow(string TVShowName, string userEmail, double score, string feedback)
+    {
+        try
+        {
+            if (score < 0.0 || score > 10.0)
+            {
+                return BadRequest("Score must be between 0 and 10.");
+            }
+
+            using var session = _neo4jDriver.AsyncSession();
+            var query = @"
+                MATCH(ts:TVShow{Name: $TVShowName})
+                MATCH(u:User{Email: $userEmail})
+                CREATE (u)-[r:RATED]->(ts)
+                SET r.Score = $score, r.Feedback = $feedback
+            ";
+
+            await session.RunAsync(query, new {
+                TVShowName,
+                userEmail,
+                score, 
+                feedback
+            });
+
+            return Ok("TV show has been successfully rated");
+        }
+        catch(Exception e)
+        {
+            return BadRequest(e.Message);
+        }
+    }
 }
