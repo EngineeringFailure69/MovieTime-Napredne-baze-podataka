@@ -127,6 +127,24 @@ public class UserController : ControllerBase
         try
         {
             using var session = _neo4jDriver.AsyncSession();
+
+            // Provera da li je film vec dodat u omiljene
+            var checkQuery = @"
+                MATCH (u:User {Email: $userEmail})-[r:FAVORITE]->(m:Movie {Name: $movieName})
+                RETURN r
+            ";
+
+            var checkResult = await session.RunAsync(checkQuery, new
+            {
+                movieName,
+                userEmail
+            });
+
+            if (await checkResult.FetchAsync())
+            {
+                return BadRequest("Movie is already marked as favorite");
+            }
+
             var query = @"
                 MATCH(m:Movie{Name: $movieName})
                 MATCH(u:User{Email: $userEmail})
@@ -164,6 +182,54 @@ public class UserController : ControllerBase
             });
 
             return Ok("TV show has been successfully added to the favorites");
+        }
+        catch(Exception e)
+        {
+            return BadRequest(e.Message);
+        }
+    }
+
+    [HttpPost("RemoveFavoriteMovie/{movieName}/{userEmail}")]
+    public async Task<ActionResult> RemoveFavoriteMovie(string movieName, string userEmail)
+    {
+        try
+        {
+            using var session = _neo4jDriver.AsyncSession();
+            var query = @"
+                MATCH(u:User{Email: $userEmail})-[f:FAVORITE]->(m:Movie{Name: $movieName})
+                DELETE f
+            ";
+
+            await session.RunAsync(query, new {
+                movieName,
+                userEmail
+            });
+
+            return Ok("Movie has been successfully removed from the favorites");
+        }
+        catch(Exception e)
+        {
+            return BadRequest(e.Message);
+        }
+    }
+
+    [HttpPost("RemoveFavoriteTVShow/{showName}/{userEmail}")]
+    public async Task<ActionResult> RemoveFavoriteTVShow(string showName, string userEmail)
+    {
+        try
+        {
+            using var session = _neo4jDriver.AsyncSession();
+            var query = @"
+                MATCH(u:User{Email: $userEmail})-[f:FAVORITE]->(ts:TVShow{Name: $showName})
+                DELETE f
+            ";
+
+            await session.RunAsync(query, new {
+                showName,
+                userEmail
+            });
+
+            return Ok("TV show has been successfully removed from the favorites");
         }
         catch(Exception e)
         {
@@ -487,6 +553,93 @@ public class UserController : ControllerBase
             var result = await session.RunAsync(query, new {
                 actorFirstName,
                 actorLastName
+            });
+            
+            var tVShows = new List<TVShow>();
+            while (await result.FetchAsync())
+            {
+                TVShow tvShow = new TVShow
+                {
+                    NumOfSeasons = int.Parse(result.Current["NumOfSeasons"].As<string>()),
+                    Name = result.Current["Name"].As<string>(),
+                    YearOfRelease = int.Parse(result.Current["YearOfRelease"].As<string>()),
+                    Genre = result.Current["Genre"].As<string>(),
+                    AvgScore = double.Parse(result.Current["AvgScore"].As<string>()),
+                    Description = result.Current["Description"].As<string>(),
+                    Image = result.Current["Image"].As<string>(),
+                    Link = result.Current["Link"].As<string>()
+                };
+    
+                tVShows.Add(tvShow);
+            }
+ 
+            return Ok(tVShows);
+        }
+        catch(Exception e)
+        {
+            return BadRequest(e.Message);
+        }
+    }
+
+    [HttpGet("GetMoviesWithDirector/{directorFirstName}/{directorLastName}")] //vraca sve filmove sa trazenim direktorem 
+    public async Task<ActionResult> GetMoviesWithDirector(string directorFirstName, string directorLastName)
+    {
+        try
+        {
+            using var session = _neo4jDriver.AsyncSession();
+            var query = @"
+                MATCH (:Director {FirstName: $directorFirstName, LastName: $directorLastName})-[:DIRECTED_IN]->(movie:Movie)
+                RETURN movie.Duration AS Duration, movie.Name AS Name, movie.YearOfRelease AS YearOfRelease, movie.Genre AS Genre,
+                movie.AvgScore as AvgScore, movie.Description as Description, movie.Image as Image, movie.Link as Link 
+            ";
+
+            var result = await session.RunAsync(query, new {
+                directorFirstName,
+                directorLastName
+            });
+
+            var movies = new List<Movie>();
+            while (await result.FetchAsync())
+            {
+                Movie movie = new Movie
+                {
+                    Duration = int.Parse(result.Current["Duration"].As<string>()),
+                    Name = result.Current["Name"].As<string>(),
+                    YearOfRelease = int.Parse(result.Current["YearOfRelease"].As<string>()),
+                    Genre = result.Current["Genre"].As<string>(),
+                    AvgScore = double.Parse(result.Current["AvgScore"].As<string>()),
+                    Description = result.Current["Description"].As<string>(),
+                    Image = result.Current["Image"].As<string>(),
+                    Link = result.Current["Link"].As<string>()
+                };
+    
+                movies.Add(movie);
+            }
+ 
+            return Ok(movies);
+        }
+        catch(Exception e)
+        {
+            return BadRequest(e.Message);
+        }
+    }
+
+    [HttpGet("GetTVShowsWithDirector/{directorFirstName}/{directorLastName}")] //vraca sve serije sa trazenim direktorem
+    public async Task<ActionResult> GetTVShowsWithDirector(string directorFirstName, string directorLastName)
+    {
+        try
+        {
+            using var session = _neo4jDriver.AsyncSession();
+            var query = @"
+                MATCH (:Director {FirstName: $directorFirstName, LastName: $directorLastName})-[:DIRECTED_IN]->(ts:TVShow)
+                RETURN ts.NumOfSeasons AS NumOfSeasons, ts.Name AS Name, ts.YearOfRelease AS YearOfRelease, 
+                ts.Genre AS Genre, ts.AvgScore as AvgScore, ts.Description as Description, ts.Image as Image, 
+                ts.Link as Link 
+            ";
+
+            var result = await session.RunAsync(query, new {
+                directorFirstName,
+                directorLastName
             });
             
             var tVShows = new List<TVShow>();

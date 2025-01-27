@@ -424,4 +424,29 @@ public class MovieController : ControllerBase
         }
     }
 
+    //Funckija za ocenu filma, promeni ako treba nesto drugo da se uradi
+    [HttpPost("ChangeMovieAvgScore/{movieName}/{avgScore}")]
+    public async Task<ActionResult> ChangeMovieAvgScore(string movieName, double avgScore)
+    {
+        try
+        {
+            
+            await using var session = _neo4jDriver.AsyncSession();
+            var query = @"
+                    MATCH (m:Movie {Name: $movieName})
+                    SET m.AvgScore = $avgScore
+            ";
+
+            await session.RunAsync(query, new {
+                movieName, 
+                avgScore
+            });
+
+            return Ok("Average Score of the movie was successfully changed");
+        }
+        catch(Exception e)
+        {
+            return BadRequest(e.Message);
+        }
+    }
 }

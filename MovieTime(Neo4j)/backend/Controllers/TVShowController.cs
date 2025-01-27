@@ -425,4 +425,30 @@ public class TVShowController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+
+    //Funckija za ocenu serije, promeni ako treba nesto drugo da se uradi
+    [HttpPost("ChangeTVShowAvgScore/{showName}/{avgScore}")]
+    public async Task<ActionResult> ChangeTVShowAvgScore(string showName, double avgScore)
+    {
+        try
+        {
+            
+            await using var session = _neo4jDriver.AsyncSession();
+            var query = @"
+                    MATCH (ts:TVShow {Name: $showName})
+                    SET ts.AvgScore = $avgScore
+            ";
+
+            await session.RunAsync(query, new {
+                showName, 
+                avgScore
+            });
+
+            return Ok("Average Score of the TV show was successfully changed");
+        }
+        catch(Exception e)
+        {
+            return BadRequest(e.Message);
+        }
+    }
 }
