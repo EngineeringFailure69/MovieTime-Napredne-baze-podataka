@@ -432,4 +432,86 @@ public class UserController : ControllerBase
             return BadRequest(e.Message);
         }
     }
+
+    [HttpGet("GetActorsFromTVShow/{showName}")] //vraca sve glumce koji su glumili u trazenoj seriji, ovo ime je valjda dobro (oci emoji) :)
+    public async Task<ActionResult> GetActorsFromTVShow(string showName)
+    {
+        try
+        {
+            using var session = _neo4jDriver.AsyncSession();
+            var query = @"
+                MATCH (:TVShow {Name: $showName})<-[:ACTED_IN]-(actor:Actor)
+                RETURN actor.FirstName AS FirstName, actor.LastName AS LastName, actor.DateOfBirth AS DateOfBirth, actor.Awards AS Awards
+            ";
+
+            var result = await session.RunAsync(query, new {
+                showName
+            });
+
+            var actors = new List<Actor>();
+            while (await result.FetchAsync())
+            {
+                Actor actor = new Actor
+                {
+                    FirstName = result.Current["FirstName"].As<string>(),
+                    LastName = result.Current["LastName"].As<string>(),
+                    DateOfBirth = DateTime.Parse(result.Current["DateOfBirth"].As<string>()),
+                    Awards = result.Current["Awards"].As<List<string>>()
+                };
+    
+                actors.Add(actor);
+            }
+ 
+            return Ok(actors);
+        }
+        catch(Exception e)
+        {
+            return BadRequest(e.Message);
+        }
+    }
+
+    [HttpGet("GetTVShowsWithActor/{actorFirstName}/{actorLastName}")] //vraca sve serije u kojima je glumio glumac, ako smislite bolje 
+    //ime za funkciju, promenite ga :(
+    public async Task<ActionResult> GetTVShowsWithActor(string actorFirstName, string actorLastName)
+    {
+        try
+        {
+            using var session = _neo4jDriver.AsyncSession();
+            var query = @"
+                MATCH (:Actor {FirstName: $actorFirstName, LastName: $actorLastName})-[:ACTED_IN]->(ts:TVShow)
+                RETURN ts.NumOfSeasons AS NumOfSeasons, ts.Name AS Name, ts.YearOfRelease AS YearOfRelease, 
+                ts.Genre AS Genre, ts.AvgScore as AvgScore, ts.Description as Description, ts.Image as Image, 
+                ts.Link as Link 
+            ";
+
+            var result = await session.RunAsync(query, new {
+                actorFirstName,
+                actorLastName
+            });
+            
+            var tVShows = new List<TVShow>();
+            while (await result.FetchAsync())
+            {
+                TVShow tvShow = new TVShow
+                {
+                    NumOfSeasons = int.Parse(result.Current["NumOfSeasons"].As<string>()),
+                    Name = result.Current["Name"].As<string>(),
+                    YearOfRelease = int.Parse(result.Current["YearOfRelease"].As<string>()),
+                    Genre = result.Current["Genre"].As<string>(),
+                    AvgScore = double.Parse(result.Current["AvgScore"].As<string>()),
+                    Description = result.Current["Description"].As<string>(),
+                    Image = result.Current["Image"].As<string>(),
+                    Link = result.Current["Link"].As<string>()
+                };
+    
+                tVShows.Add(tvShow);
+            }
+ 
+            return Ok(tVShows);
+        }
+        catch(Exception e)
+        {
+            return BadRequest(e.Message);
+        }
+    }
 }

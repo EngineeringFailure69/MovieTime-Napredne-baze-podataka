@@ -153,4 +153,32 @@ public class ActorController : ControllerBase
             return BadRequest(e.Message);
         }
     }
+
+    [HttpPost("LinkActorToTVShow/{actorFirstName}/{actorLastName}/{showName}/{roleType}")]
+    public async Task<ActionResult> LinkActorToTVShow(string actorFirstName, string actorLastName, string showName, string roleType)
+    {
+        try
+        {
+            await using var session = _neo4jDriver.AsyncSession();
+
+            var query = @"
+                MATCH(a:Actor{FirstName: $actorFirstName, LastName: $actorLastName})
+                MATCH(ts:TVShow{Name: $showName})
+                CREATE (a)-[:ACTED_IN {RoleType: $roleType}]->(ts)
+            ";
+
+            await session.RunAsync(query, new {
+                actorFirstName, 
+                actorLastName, 
+                showName, 
+                roleType
+            });
+
+            return Ok("Actor has been successfully connected to the TV show");
+        }
+        catch(Exception e)
+        {
+            return BadRequest(e.Message);
+        }
+    }
 }
