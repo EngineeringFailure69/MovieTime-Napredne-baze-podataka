@@ -3,26 +3,39 @@ import { BsList } from 'react-icons/bs';
 import { useNavigate } from 'react-router-dom';
 import styles from './Navbar.module.css';
 import { HashLink } from 'react-router-hash-link';
-import { jwtDecode } from 'jwt-decode';
+import { LuClapperboard } from "react-icons/lu";
+import { Avatar } from "@/components/ui/avatar"
+import { UserFetch } from '../UserFetch/UserFetch';
+import Search from '../Search/Search';
 
-const Navbar = ({ setLoginDialogOpen }) => {
+const Navbar = ({ setLoginDialogOpen, filterOpen, setFilterOpen, searchValue, setSearchValue }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userType, setUserType] = useState('');
+  const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        setUserType(decoded.TypeOfUser);
-      } catch (error) {
-        console.error('Invalid token', error);
+
+    const fetchUser = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const userData = await UserFetch();
+          setUser(userData);
+          setUserType(userData.TypeOfUser);
+        } catch (error) {
+          console.error('Invalid token', error);
+          setUser(null);
+          setUserType('');
+        }
+      } else {
+        setUser(null);
         setUserType('');
       }
-    } else {
-      setUserType('');
-    }
+    };
+
+    fetchUser();
+
   }, [navigate]);
 
   const toggleMenu = () => {
@@ -36,6 +49,7 @@ const Navbar = ({ setLoginDialogOpen }) => {
   const handleLoginClick = () => {
     setMenuOpen(false);
     setLoginDialogOpen(true);
+    setFilterOpen(false);
   };
 
   const handleLogout = () => {
@@ -46,15 +60,30 @@ const Navbar = ({ setLoginDialogOpen }) => {
     }
   };
 
+  const handleFilterClick = () => {
+    setFilterOpen(!filterOpen);
+    setLoginDialogOpen(false);
+  };
+
   const getMenuItems = () => {
     switch(userType) {
       case 'user':
         return (
           <>
-              <li><HashLink to="/user#movies" onClick={handleMenuClick}>Filmovi</HashLink></li>
-              <li><HashLink to="/user#tvshows" onClick={handleMenuClick}>Serije</HashLink></li>
+              <li><HashLink to="/user" onClick={handleMenuClick}>Filmovi</HashLink></li>
+              <li><HashLink to="/user-tvShows" onClick={handleMenuClick}>Serije</HashLink></li>
               <li><HashLink to="/user-favourite-movies" onClick={handleMenuClick}>Omiljeni filmovi</HashLink></li>
+              <li><HashLink to="/user-favourite-tvShows" onClick={handleMenuClick}>Omiljene serije</HashLink></li>
               <li><HashLink to="/" onClick={handleLogout}>Odjava</HashLink></li>
+              <li className={styles.avatarContainer}>
+                  <Avatar
+                    className={styles['avatar-padding']}
+                    size="sm"
+                    variant="subtle"
+                    name={`${user?.FirstName || ''} ${user?.LastName || ''}`}
+                  />
+                  <span className={styles.userData}><strong>{user.FirstName} {user.LastName}</strong></span>
+              </li>
           </>
         );
       case 'admin':
@@ -67,9 +96,9 @@ const Navbar = ({ setLoginDialogOpen }) => {
       default:
       return (
         <>
-            <li><HashLink to="#movies" onClick={handleMenuClick}>Filmovi</HashLink></li>
-            <li><HashLink to="#tvshows" onClick={handleMenuClick}>Serije</HashLink></li>
-            <li><HashLink to="#movies" onClick={handleLoginClick}>Prijava</HashLink></li>
+            <li><HashLink to="/" onClick={handleMenuClick}>Filmovi</HashLink></li>
+            <li><HashLink to="/tvShows" onClick={handleMenuClick}>Serije</HashLink></li>
+            <li><HashLink to="/" onClick={handleLoginClick}>Prijava</HashLink></li>
         </>
       );
     }
@@ -79,9 +108,25 @@ const Navbar = ({ setLoginDialogOpen }) => {
     <header>
       <div className={`${styles.navbarOverlay}`}></div>
 
-      <HashLink to="#home" className="logo">
+      <div className={`${styles.titleAndFilter}`}>
+      <LuClapperboard
+        className="filter-icon"
+        style={{
+          fontSize: '30px',
+          cursor: 'pointer',
+          color: filterOpen ? '#007bff' : 'white', 
+          transition: 'color 0.3s ease, transform 0.3s ease',
+          transform: filterOpen ? 'scale(1.2)' : 'scale(1)', 
+        }}
+        onClick={handleFilterClick}
+      />
+      <HashLink to="/" className="logo">
         MovieTime
       </HashLink>
+      </div>
+      <div className={`${styles.search}`}>
+      <Search searchValue={searchValue} setSearchValue={setSearchValue} />
+      </div>
       <div
         className={`${styles.burgerMenu} bx bx-menu ${menuOpen ? "open" : ""}`}
         id="menu-icon"

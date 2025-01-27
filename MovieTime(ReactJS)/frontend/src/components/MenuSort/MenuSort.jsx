@@ -11,8 +11,8 @@ import {
 import { useState } from "react"
 import { HiSortAscending } from "react-icons/hi"
 
-const MenuSort = () => {
-  const [value, setValue] = useState("asc")
+const MenuSort = ({ sortValue, setSortValue, setIsSorted }) => {
+  
   return (
     <MenuRoot>
       <MenuTrigger asChild>
@@ -25,7 +25,7 @@ const MenuSort = () => {
             padding: '10px',
             marginRight: '35px',
             borderRadius: '4px',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',  // Blaga senka
+            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
             fontSize: '14px',
             fontWeight: '500',
             display: 'flex',
@@ -43,14 +43,17 @@ const MenuSort = () => {
           padding: '10px',
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)', // Senka
+          boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
           minWidth: '180px',
           border: '1px solid #ccc',
         }}
       >
         <MenuRadioItemGroup
-          value={value}
-          onValueChange={(e) => setValue(e.value)}
+          value={sortValue}
+          onValueChange={(value) => {
+            setSortValue(value);
+            setIsSorted(true);
+          }}
           style={{ marginTop: '5px' }}
         >
           <MenuRadioItem
@@ -112,7 +115,7 @@ const MenuSort = () => {
         </MenuRadioItemGroup>
       </MenuContent>
     </MenuRoot>
-  )
+  );
 }
 
 export default MenuSort;

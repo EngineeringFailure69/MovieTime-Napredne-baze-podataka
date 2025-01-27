@@ -49,6 +49,7 @@ header {
   font-size: 2.4rem;
 }
 
+
 .navbar {
   display: flex;
 }
@@ -460,6 +461,7 @@ section {
   height: calc(100vh - 80px);
   overflow-y: auto; 
 }
+
 
 .overlay {
   position: relative;
