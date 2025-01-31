@@ -388,7 +388,7 @@ public class TVShowController : ControllerBase
             int limitPage = 10;
             var query = $@"
             MATCH (ts:TVShow)
-            WHERE ts.Name STARTS WITH $name
+            WHERE TOLOWER(ts.Name) STARTS WITH TOLOWER($name)
             RETURN ts.Name AS Name, 
                    ts.YearOfRelease AS YearOfRelease, 
                    ts.Genre AS Genre, 
@@ -451,4 +451,227 @@ public class TVShowController : ControllerBase
             return BadRequest(e.Message);
         }
     }
+
+    [HttpGet("GetTVShowFilter")]
+    public async Task<ActionResult> GetTVShowFilter([FromQuery] FilterRequest filterRequest)
+    {
+        try
+        {
+            await using var session = _neo4jDriver.AsyncSession();
+
+            var queryBuilder = new StringBuilder(@"
+                MATCH (ts:TVShow)");
+
+            var whereClauses = new List<string>();
+            var whereClausesEdges = new List<string>();
+            var parameters = new Dictionary<string, object>();
+
+            if (!string.IsNullOrEmpty(filterRequest.Genre))
+            {
+                whereClauses.Add("ts.Genre = $genre");
+                parameters["genre"] = filterRequest.Genre;
+            }
+
+            if (filterRequest.YearOfRelease.HasValue)
+            {
+                whereClauses.Add("ts.YearOfRelease = $yearOfRelease");
+                parameters["yearOfRelease"] = filterRequest.YearOfRelease.Value;
+            }
+
+            if (filterRequest.Grade.HasValue && filterRequest.Grade >= 0 && filterRequest.Grade <= 10)
+            {
+                whereClauses.Add("ts.AvgScore >= $grade");
+                parameters["grade"] = filterRequest.Grade.Value;
+            }
+
+            if (!string.IsNullOrEmpty(filterRequest.ActorFirstName) && !string.IsNullOrEmpty(filterRequest.ActorLastName))
+            {
+                whereClausesEdges.Add("a.FirstName = $actorFirstName AND a.LastName = $actorLastName");
+                parameters["actorFirstName"] = filterRequest.ActorFirstName;
+                parameters["actorLastName"] = filterRequest.ActorLastName;
+            }
+
+            if (!string.IsNullOrEmpty(filterRequest.DirectorFirstName) && !string.IsNullOrEmpty(filterRequest.DirectorLastName))
+            {
+                whereClausesEdges.Add("d.FirstName = $directorFirstName AND d.LastName = $directorLastName");
+                parameters["directorFirstName"] = filterRequest.DirectorFirstName;
+                parameters["directorLastName"] = filterRequest.DirectorLastName;
+            }
+
+            
+            if (whereClauses.Count > 0)
+            {
+                queryBuilder.Append(" WHERE " + string.Join(" AND ", whereClauses));
+            }
+
+            
+            queryBuilder.Append(@"
+                OPTIONAL MATCH (ts)<-[:ACTED_IN]-(a:Actor)
+                OPTIONAL MATCH (ts)<-[:DIRECTED_IN]-(d:Director)");
+
+            queryBuilder.Append(@"
+                WITH ts, a, d
+            ");
+
+            if (whereClausesEdges.Count > 0)
+            {
+                queryBuilder.Append(" WHERE " + string.Join(" AND ", whereClausesEdges));
+            }
+
+            queryBuilder.Append(@"
+                RETURN ts.Name AS Name, 
+                    ts.YearOfRelease AS YearOfRelease, 
+                    ts.Genre AS Genre, 
+                    ts.AvgScore AS AvgScore, 
+                    ts.Description AS Description, 
+                    ts.NumOfSeasons AS NumOfSeasons,
+                    ts.Image as Image,
+                    ts.Link as Link");
+
+            var query = queryBuilder.ToString();
+            var tvShows = new List<TVShow>();
+            var result = await session.RunAsync(query, parameters);
+
+            await foreach (var record in result)
+            {
+                var tvShow = new TVShow
+                {
+                    Name = record["Name"].As<string>(),
+                    YearOfRelease = record["YearOfRelease"].As<int>(),
+                    Genre = record["Genre"].As<string>(),
+                    AvgScore = record["AvgScore"].As<double>(),
+                    Description = record["Description"].As<string>(),
+                    NumOfSeasons = record["NumOfSeasons"].As<int>(),
+                    Image = record["Image"].As<string>(),
+                    Link = record["Link"].As<string>(),
+                };
+
+                tvShows.Add(tvShow);
+            }
+
+            return Ok(tvShows);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpGet("GetTVShowsWithActor/{actorFirstName}/{actorLastName}")] //vraca sve serije u kojima je glumio glumac, ako smislite bolje 
+    //ime za funkciju, promenite ga :(
+    public async Task<ActionResult> GetTVShowsWithActor(string actorFirstName, string actorLastName)
+    {
+        try
+        {
+            using var session = _neo4jDriver.AsyncSession();
+            var query = @"
+                MATCH (:Actor {FirstName: $actorFirstName, LastName: $actorLastName})-[:ACTED_IN]->(ts:TVShow)
+                RETURN ts.NumOfSeasons AS NumOfSeasons, ts.Name AS Name, ts.YearOfRelease AS YearOfRelease, 
+                ts.Genre AS Genre, ts.AvgScore as AvgScore, ts.Description as Description, ts.Image as Image, 
+                ts.Link as Link 
+            ";
+
+            var result = await session.RunAsync(query, new {
+                actorFirstName,
+                actorLastName
+            });
+            
+            var tVShows = new List<TVShow>();
+            while (await result.FetchAsync())
+            {
+                TVShow tvShow = new TVShow
+                {
+                    NumOfSeasons = int.Parse(result.Current["NumOfSeasons"].As<string>()),
+                    Name = result.Current["Name"].As<string>(),
+                    YearOfRelease = int.Parse(result.Current["YearOfRelease"].As<string>()),
+                    Genre = result.Current["Genre"].As<string>(),
+                    AvgScore = double.Parse(result.Current["AvgScore"].As<string>()),
+                    Description = result.Current["Description"].As<string>(),
+                    Image = result.Current["Image"].As<string>(),
+                    Link = result.Current["Link"].As<string>()
+                };
+    
+                tVShows.Add(tvShow);
+            }
+ 
+            return Ok(tVShows);
+        }
+        catch(Exception e)
+        {
+            return BadRequest(e.Message);
+        }
+    }
+
+     [HttpGet("GetTVShowsWithDirector/{directorFirstName}/{directorLastName}")] //vraca sve serije sa trazenim direktorem
+    public async Task<ActionResult> GetTVShowsWithDirector(string directorFirstName, string directorLastName)
+    {
+        try
+        {
+            using var session = _neo4jDriver.AsyncSession();
+            var query = @"
+                MATCH (:Director {FirstName: $directorFirstName, LastName: $directorLastName})-[:DIRECTED_IN]->(ts:TVShow)
+                RETURN ts.NumOfSeasons AS NumOfSeasons, ts.Name AS Name, ts.YearOfRelease AS YearOfRelease, 
+                ts.Genre AS Genre, ts.AvgScore as AvgScore, ts.Description as Description, ts.Image as Image, 
+                ts.Link as Link 
+            ";
+
+            var result = await session.RunAsync(query, new {
+                directorFirstName,
+                directorLastName
+            });
+            
+            var tVShows = new List<TVShow>();
+            while (await result.FetchAsync())
+            {
+                TVShow tvShow = new TVShow
+                {
+                    NumOfSeasons = int.Parse(result.Current["NumOfSeasons"].As<string>()),
+                    Name = result.Current["Name"].As<string>(),
+                    YearOfRelease = int.Parse(result.Current["YearOfRelease"].As<string>()),
+                    Genre = result.Current["Genre"].As<string>(),
+                    AvgScore = double.Parse(result.Current["AvgScore"].As<string>()),
+                    Description = result.Current["Description"].As<string>(),
+                    Image = result.Current["Image"].As<string>(),
+                    Link = result.Current["Link"].As<string>()
+                };
+    
+                tVShows.Add(tvShow);
+            }
+ 
+            return Ok(tVShows);
+        }
+        catch(Exception e)
+        {
+            return BadRequest(e.Message);
+        }
+    }
+
+    [HttpGet("GetAllUniqueGenres")]
+    public async Task<ActionResult> GetAllUniqueGenres()
+    {
+        try
+        {
+            await using var session = _neo4jDriver.AsyncSession();        
+            var query = @"
+                MATCH (ts:TVShow)
+                RETURN DISTINCT m.Genre AS Genre
+            ";
+
+            var genres = new List<string>();
+
+            var result = await session.RunAsync(query);
+            await foreach (var record in result)
+            {
+                var genre = record["Genre"].As<string>();
+                genres.Add(genre);
+            }
+
+            return Ok(genres); 
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
 }

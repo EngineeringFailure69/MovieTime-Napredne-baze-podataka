@@ -386,7 +386,7 @@ public class MovieController : ControllerBase
             int limitPage = 10;
             var query = $@"
             MATCH (m:Movie)
-            WHERE m.Name STARTS WITH $name
+            WHERE TOLOWER(m.Name) STARTS WITH TOLOWER($name)
             RETURN m.Name AS Name, 
                    m.YearOfRelease AS YearOfRelease, 
                    m.Genre AS Genre, 
@@ -449,4 +449,232 @@ public class MovieController : ControllerBase
             return BadRequest(e.Message);
         }
     }
+    [HttpGet("GetMoviesFilter")]
+    public async Task<ActionResult> GetMoviesFilter([FromQuery] FilterRequest filterRequest)
+    {
+        try
+        {
+            await using var session = _neo4jDriver.AsyncSession();
+
+            var queryBuilder = new StringBuilder(@"
+                MATCH (m:Movie)");
+
+            var whereClauses = new List<string>();
+            var whereClausesEdges = new List<string>();
+            var parameters = new Dictionary<string, object>();
+
+            if (!string.IsNullOrEmpty(filterRequest.Genre))
+            {
+                whereClauses.Add("m.Genre = $genre");
+                parameters["genre"] = filterRequest.Genre;
+            }
+
+            if (filterRequest.YearOfRelease.HasValue)
+            {
+                whereClauses.Add("m.YearOfRelease = $yearOfRelease");
+                parameters["yearOfRelease"] = filterRequest.YearOfRelease.Value;
+            }
+
+            if (filterRequest.Grade.HasValue && filterRequest.Grade >= 0 && filterRequest.Grade <= 10)
+            {
+                whereClauses.Add("m.AvgScore >= $grade");
+                parameters["grade"] = filterRequest.Grade.Value;
+            }
+
+            if (!string.IsNullOrEmpty(filterRequest.ActorFirstName) && !string.IsNullOrEmpty(filterRequest.ActorLastName))
+            {
+                whereClausesEdges.Add("a.FirstName = $actorFirstName AND a.LastName = $actorLastName");
+                parameters["actorFirstName"] = filterRequest.ActorFirstName;
+                parameters["actorLastName"] = filterRequest.ActorLastName;
+            }
+
+            if (!string.IsNullOrEmpty(filterRequest.DirectorFirstName) && !string.IsNullOrEmpty(filterRequest.DirectorLastName))
+            {
+                whereClausesEdges.Add("d.FirstName = $directorFirstName AND d.LastName = $directorLastName");
+                parameters["directorFirstName"] = filterRequest.DirectorFirstName;
+                parameters["directorLastName"] = filterRequest.DirectorLastName;
+            }
+
+            
+            if (whereClauses.Count > 0)
+            {
+                queryBuilder.Append(" WHERE " + string.Join(" AND ", whereClauses));
+            }
+
+            
+            queryBuilder.Append(@"
+                OPTIONAL MATCH (m)<-[:ACTED_IN]-(a:Actor)
+                OPTIONAL MATCH (m)<-[:DIRECTED_IN]-(d:Director)");
+
+            queryBuilder.Append(@"
+                WITH m, a, d
+            ");
+
+            if (whereClausesEdges.Count > 0)
+            {
+                queryBuilder.Append(" WHERE " + string.Join(" AND ", whereClausesEdges));
+            }
+
+            queryBuilder.Append(@"
+                RETURN m.Name AS Name, 
+                    m.YearOfRelease AS YearOfRelease, 
+                    m.Genre AS Genre, 
+                    m.AvgScore AS AvgScore, 
+                    m.Description AS Description, 
+                    m.Duration AS Duration,
+                    m.Image as Image,
+                    m.Link as Link");
+
+            var query = queryBuilder.ToString();
+            var movies = new List<Movie>();
+            var result = await session.RunAsync(query, parameters);
+
+            await foreach (var record in result)
+            {
+                var movie = new Movie
+                {
+                    Name = record["Name"].As<string>(),
+                    YearOfRelease = record["YearOfRelease"].As<int>(),
+                    Genre = record["Genre"].As<string>(),
+                    AvgScore = record["AvgScore"].As<double>(),
+                    Description = record["Description"].As<string>(),
+                    Duration = record["Duration"].As<int>(),
+                    Image = record["Image"].As<string>(),
+                    Link = record["Link"].As<string>(),
+                };
+
+                movies.Add(movie);
+            }
+
+            return Ok(movies);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+    [HttpGet("GetMoviesWithActor/{actorFirstName}/{actorLastName}")] //vraca sve filmove u kojima je glumio glumac, ako smislite bolje 
+    //ime za funkciju, promenite ga :(
+    public async Task<ActionResult> GetMoviesWithActors(string actorFirstName, string actorLastName)
+    {
+        try
+        {
+            using var session = _neo4jDriver.AsyncSession();
+            var query = @"
+                MATCH (:Actor {FirstName: $actorFirstName, LastName: $actorLastName})-[:ACTED_IN]->(movie:Movie)
+                RETURN movie.Duration AS Duration, movie.Name AS Name, movie.YearOfRelease AS YearOfRelease, movie.Genre AS Genre,
+                movie.AvgScore as AvgScore, movie.Description as Description, movie.Image as Image, movie.Link as Link 
+            ";
+
+            var result = await session.RunAsync(query, new {
+                actorFirstName,
+                actorLastName
+            });
+
+            var duration = string.Empty;
+            var name = string.Empty;
+            var yearOfRelease = string.Empty;
+            var genre = string.Empty;
+            var avgScore = string.Empty;
+            var description = string.Empty;
+            var image = string.Empty;
+            var link = string.Empty;
+            var movies = new List<Movie>();
+            while (await result.FetchAsync())
+            {
+                Movie movie = new Movie
+                {
+                    Duration = int.Parse(result.Current["Duration"].As<string>()),
+                    Name = result.Current["Name"].As<string>(),
+                    YearOfRelease = int.Parse(result.Current["YearOfRelease"].As<string>()),
+                    Genre = result.Current["Genre"].As<string>(),
+                    AvgScore = double.Parse(result.Current["AvgScore"].As<string>()),
+                    Description = result.Current["Description"].As<string>(),
+                    Image = result.Current["Image"].As<string>(),
+                    Link = result.Current["Link"].As<string>()
+                };
+    
+                movies.Add(movie);
+            }
+ 
+            return Ok(movies);
+        }
+        catch(Exception e)
+        {
+            return BadRequest(e.Message);
+        }
+    }
+    [HttpGet("GetMoviesWithDirector/{directorFirstName}/{directorLastName}")] //vraca sve filmove sa trazenim direktorem 
+    public async Task<ActionResult> GetMoviesWithDirector(string directorFirstName, string directorLastName)
+    {
+        try
+        {
+            using var session = _neo4jDriver.AsyncSession();
+            var query = @"
+                MATCH (:Director {FirstName: $directorFirstName, LastName: $directorLastName})-[:DIRECTED_IN]->(movie:Movie)
+                RETURN movie.Duration AS Duration, movie.Name AS Name, movie.YearOfRelease AS YearOfRelease, movie.Genre AS Genre,
+                movie.AvgScore as AvgScore, movie.Description as Description, movie.Image as Image, movie.Link as Link 
+            ";
+
+            var result = await session.RunAsync(query, new {
+                directorFirstName,
+                directorLastName
+            });
+
+            var movies = new List<Movie>();
+            while (await result.FetchAsync())
+            {
+                Movie movie = new Movie
+                {
+                    Duration = int.Parse(result.Current["Duration"].As<string>()),
+                    Name = result.Current["Name"].As<string>(),
+                    YearOfRelease = int.Parse(result.Current["YearOfRelease"].As<string>()),
+                    Genre = result.Current["Genre"].As<string>(),
+                    AvgScore = double.Parse(result.Current["AvgScore"].As<string>()),
+                    Description = result.Current["Description"].As<string>(),
+                    Image = result.Current["Image"].As<string>(),
+                    Link = result.Current["Link"].As<string>()
+                };
+    
+                movies.Add(movie);
+            }
+ 
+            return Ok(movies);
+        }
+        catch(Exception e)
+        {
+            return BadRequest(e.Message);
+        }
+    }
+
+    [HttpGet("GetAllUniqueGenres")]
+    public async Task<ActionResult> GetAllUniqueGenres()
+    {
+        try
+        {
+            await using var session = _neo4jDriver.AsyncSession();        
+            var query = @"
+                MATCH (m:Movie)
+                RETURN DISTINCT m.Genre AS Genre
+            ";
+
+            var genres = new List<string>();
+
+            var result = await session.RunAsync(query);
+            await foreach (var record in result)
+            {
+                var genre = record["Genre"].As<string>();
+                genres.Add(genre);
+            }
+
+            return Ok(genres); 
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+
+
 }

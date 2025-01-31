@@ -181,4 +181,111 @@ public class ActorController : ControllerBase
             return BadRequest(e.Message);
         }
     }
+    [HttpGet("GetActorsFromMovie/{movieName}")] //vraca sve glumce koji su glumili u trazenom filmu, ovo ime je valjda dobro (oci emoji) :)
+    public async Task<ActionResult> GetActorsFromMovie(string movieName)
+    {
+        try
+        {
+            using var session = _neo4jDriver.AsyncSession();
+            var query = @"
+                MATCH (:Movie {Name: $movieName})<-[:ACTED_IN]-(actor:Actor)
+                RETURN actor.FirstName AS FirstName, actor.LastName AS LastName, actor.DateOfBirth AS DateOfBirth, actor.Awards AS Awards
+            ";
+
+            var result = await session.RunAsync(query, new {
+                movieName
+            });
+
+            var actors = new List<Actor>();
+            while (await result.FetchAsync())
+            {
+                Actor actor = new Actor
+                {
+                    FirstName = result.Current["FirstName"].As<string>(),
+                    LastName = result.Current["LastName"].As<string>(),
+                    DateOfBirth = DateTime.Parse(result.Current["DateOfBirth"].As<string>()),
+                    Awards = result.Current["Awards"].As<List<string>>()
+                };
+    
+                actors.Add(actor);
+            }
+ 
+            return Ok(actors);
+        }
+        catch(Exception e)
+        {
+            return BadRequest(e.Message);
+        }
+    }
+
+    [HttpGet("GetActorsFromTVShow/{showName}")] //vraca sve glumce koji su glumili u trazenoj seriji, ovo ime je valjda dobro (oci emoji) :)
+    public async Task<ActionResult> GetActorsFromTVShow(string showName)
+    {
+        try
+        {
+            using var session = _neo4jDriver.AsyncSession();
+            var query = @"
+                MATCH (:TVShow {Name: $showName})<-[:ACTED_IN]-(actor:Actor)
+                RETURN actor.FirstName AS FirstName, actor.LastName AS LastName, actor.DateOfBirth AS DateOfBirth, actor.Awards AS Awards
+            ";
+
+            var result = await session.RunAsync(query, new {
+                showName
+            });
+
+            var actors = new List<Actor>();
+            while (await result.FetchAsync())
+            {
+                Actor actor = new Actor
+                {
+                    FirstName = result.Current["FirstName"].As<string>(),
+                    LastName = result.Current["LastName"].As<string>(),
+                    DateOfBirth = DateTime.Parse(result.Current["DateOfBirth"].As<string>()),
+                    Awards = result.Current["Awards"].As<List<string>>()
+                };
+    
+                actors.Add(actor);
+            }
+ 
+            return Ok(actors);
+        }
+        catch(Exception e)
+        {
+            return BadRequest(e.Message);
+        }
+    }
+
+
+    [HttpGet("GetAllName")]
+    public async Task<ActionResult> GetAllName()
+    {
+        try
+        {
+        var actors = new List<object>();        
+        using var session = _neo4jDriver.AsyncSession();
+
+        
+        var query = @"
+            MATCH (a:Actor)
+            RETURN a.FirstName AS FirstName, a.LastName AS LastName
+        ";
+
+        var result = await session.RunAsync(query);
+        await foreach (var record in result)
+        {
+            var actor = new 
+            {
+                FirstName = record["FirstName"].As<string>(),
+                LastName = record["LastName"].As<string>(),
+            };
+            actors.Add(actor);
+        }
+        return Ok(actors);
+
+        }
+        catch(Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
 }

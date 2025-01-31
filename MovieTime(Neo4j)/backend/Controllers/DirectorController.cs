@@ -151,4 +151,38 @@ public class DirectorController : ControllerBase
             return BadRequest(e.Message);
         }
     }
+
+
+    [HttpGet("GetAllName")]
+    public async Task<ActionResult> GetAllName()
+    {
+        try
+        {
+        var directors = new List<object>();        
+        using var session = _neo4jDriver.AsyncSession();
+
+        
+        var query = @"
+            MATCH (d:Director)
+            RETURN d.FirstName AS FirstName, d.LastName AS LastName
+        ";
+
+        var result = await session.RunAsync(query);
+        await foreach (var record in result)
+        {
+            var director = new 
+            {
+                FirstName = record["FirstName"].As<string>(),
+                LastName = record["LastName"].As<string>(),
+            };
+            directors.Add(director);
+        }
+        return Ok(directors);
+
+        }
+        catch(Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
 }

@@ -128,7 +128,7 @@ public class UserController : ControllerBase
         {
             using var session = _neo4jDriver.AsyncSession();
 
-            // Provera da li je film vec dodat u omiljene
+           
             var checkQuery = @"
                 MATCH (u:User {Email: $userEmail})-[r:FAVORITE]->(m:Movie {Name: $movieName})
                 RETURN r
@@ -170,6 +170,23 @@ public class UserController : ControllerBase
         try
         {
             using var session = _neo4jDriver.AsyncSession();
+
+            var checkQuery = @"
+                MATCH (u:User {Email: $userEmail})-[r:FAVORITE]->(ts:TVShow {Name: $showName})
+                RETURN r
+            ";
+
+            var checkResult = await session.RunAsync(checkQuery, new
+            {
+                showName,
+                userEmail
+            });
+
+            if (await checkResult.FetchAsync())
+            {
+                return BadRequest("TVShow is already marked as favorite");
+            }
+
             var query = @"
                 MATCH(ts:TVShow{Name: $showName})
                 MATCH(u:User{Email: $userEmail})
@@ -180,7 +197,6 @@ public class UserController : ControllerBase
                 showName,
                 userEmail
             });
-
             return Ok("TV show has been successfully added to the favorites");
         }
         catch(Exception e)
@@ -248,6 +264,20 @@ public class UserController : ControllerBase
             }
 
             using var session = _neo4jDriver.AsyncSession();
+
+
+            var checkExistingRatingQuery = @"
+            MATCH (u:User{Email: $userEmail})-[r:RATED]->(m:Movie{Name: $movieName})
+            RETURN r
+            ";
+
+            var existingRating = await session.RunAsync(checkExistingRatingQuery, new { userEmail, movieName });
+
+            
+            if (await existingRating.FetchAsync())
+            {
+                return BadRequest("You have already rated this movie.");
+            }
             var query = @"
                 MATCH(m:Movie{Name: $movieName})
                 MATCH(u:User{Email: $userEmail})
@@ -291,7 +321,24 @@ public class UserController : ControllerBase
                 return BadRequest("Score must be between 0 and 10.");
             }
 
+            
+
             using var session = _neo4jDriver.AsyncSession();
+
+            var checkExistingRatingQuery = @"
+            MATCH (u:User{Email: $userEmail})-[r:RATED]->(ts:TVShow{Name: $TVShowName})
+            RETURN r
+            ";
+
+            var existingRating = await session.RunAsync(checkExistingRatingQuery, new { userEmail, TVShowName });
+
+            
+            if (await existingRating.FetchAsync())
+            {
+                return BadRequest("You have already rated this movie.");
+            }
+            
+
             var query = @"
                 MATCH(ts:TVShow{Name: $TVShowName})
                 MATCH(u:User{Email: $userEmail})
@@ -325,94 +372,6 @@ public class UserController : ControllerBase
         }
     }
 
-    [HttpGet("GetMoviesWithActor/{actorFirstName}/{actorLastName}")] //vraca sve filmove u kojima je glumio glumac, ako smislite bolje 
-    //ime za funkciju, promenite ga :(
-    public async Task<ActionResult> GetMoviesWithActors(string actorFirstName, string actorLastName)
-    {
-        try
-        {
-            using var session = _neo4jDriver.AsyncSession();
-            var query = @"
-                MATCH (:Actor {FirstName: $actorFirstName, LastName: $actorLastName})-[:ACTED_IN]->(movie:Movie)
-                RETURN movie.Duration AS Duration, movie.Name AS Name, movie.YearOfRelease AS YearOfRelease, movie.Genre AS Genre,
-                movie.AvgScore as AvgScore, movie.Description as Description, movie.Image as Image, movie.Link as Link 
-            ";
-
-            var result = await session.RunAsync(query, new {
-                actorFirstName,
-                actorLastName
-            });
-
-            var duration = string.Empty;
-            var name = string.Empty;
-            var yearOfRelease = string.Empty;
-            var genre = string.Empty;
-            var avgScore = string.Empty;
-            var description = string.Empty;
-            var image = string.Empty;
-            var link = string.Empty;
-            var movies = new List<Movie>();
-            while (await result.FetchAsync())
-            {
-                Movie movie = new Movie
-                {
-                    Duration = int.Parse(result.Current["Duration"].As<string>()),
-                    Name = result.Current["Name"].As<string>(),
-                    YearOfRelease = int.Parse(result.Current["YearOfRelease"].As<string>()),
-                    Genre = result.Current["Genre"].As<string>(),
-                    AvgScore = double.Parse(result.Current["AvgScore"].As<string>()),
-                    Description = result.Current["Description"].As<string>(),
-                    Image = result.Current["Image"].As<string>(),
-                    Link = result.Current["Link"].As<string>()
-                };
-    
-                movies.Add(movie);
-            }
- 
-            return Ok(movies);
-        }
-        catch(Exception e)
-        {
-            return BadRequest(e.Message);
-        }
-    }
-
-    [HttpGet("GetActorsFromMovie/{movieName}")] //vraca sve glumce koji su glumili u trazenom filmu, ovo ime je valjda dobro (oci emoji) :)
-    public async Task<ActionResult> GetActorsFromMovie(string movieName)
-    {
-        try
-        {
-            using var session = _neo4jDriver.AsyncSession();
-            var query = @"
-                MATCH (:Movie {Name: $movieName})<-[:ACTED_IN]-(actor:Actor)
-                RETURN actor.FirstName AS FirstName, actor.LastName AS LastName, actor.DateOfBirth AS DateOfBirth, actor.Awards AS Awards
-            ";
-
-            var result = await session.RunAsync(query, new {
-                movieName
-            });
-
-            var actors = new List<Actor>();
-            while (await result.FetchAsync())
-            {
-                Actor actor = new Actor
-                {
-                    FirstName = result.Current["FirstName"].As<string>(),
-                    LastName = result.Current["LastName"].As<string>(),
-                    DateOfBirth = DateTime.Parse(result.Current["DateOfBirth"].As<string>()),
-                    Awards = result.Current["Awards"].As<List<string>>()
-                };
-    
-                actors.Add(actor);
-            }
- 
-            return Ok(actors);
-        }
-        catch(Exception e)
-        {
-            return BadRequest(e.Message);
-        }
-    }
 
     [HttpGet("GetFavoriteMovies/{userEmail}")]
     public async Task<ActionResult> GetFavoriteMovies(string userEmail)
@@ -492,175 +451,6 @@ public class UserController : ControllerBase
             }
  
             return Ok(tvShows);
-        }
-        catch(Exception e)
-        {
-            return BadRequest(e.Message);
-        }
-    }
-
-    [HttpGet("GetActorsFromTVShow/{showName}")] //vraca sve glumce koji su glumili u trazenoj seriji, ovo ime je valjda dobro (oci emoji) :)
-    public async Task<ActionResult> GetActorsFromTVShow(string showName)
-    {
-        try
-        {
-            using var session = _neo4jDriver.AsyncSession();
-            var query = @"
-                MATCH (:TVShow {Name: $showName})<-[:ACTED_IN]-(actor:Actor)
-                RETURN actor.FirstName AS FirstName, actor.LastName AS LastName, actor.DateOfBirth AS DateOfBirth, actor.Awards AS Awards
-            ";
-
-            var result = await session.RunAsync(query, new {
-                showName
-            });
-
-            var actors = new List<Actor>();
-            while (await result.FetchAsync())
-            {
-                Actor actor = new Actor
-                {
-                    FirstName = result.Current["FirstName"].As<string>(),
-                    LastName = result.Current["LastName"].As<string>(),
-                    DateOfBirth = DateTime.Parse(result.Current["DateOfBirth"].As<string>()),
-                    Awards = result.Current["Awards"].As<List<string>>()
-                };
-    
-                actors.Add(actor);
-            }
- 
-            return Ok(actors);
-        }
-        catch(Exception e)
-        {
-            return BadRequest(e.Message);
-        }
-    }
-
-    [HttpGet("GetTVShowsWithActor/{actorFirstName}/{actorLastName}")] //vraca sve serije u kojima je glumio glumac, ako smislite bolje 
-    //ime za funkciju, promenite ga :(
-    public async Task<ActionResult> GetTVShowsWithActor(string actorFirstName, string actorLastName)
-    {
-        try
-        {
-            using var session = _neo4jDriver.AsyncSession();
-            var query = @"
-                MATCH (:Actor {FirstName: $actorFirstName, LastName: $actorLastName})-[:ACTED_IN]->(ts:TVShow)
-                RETURN ts.NumOfSeasons AS NumOfSeasons, ts.Name AS Name, ts.YearOfRelease AS YearOfRelease, 
-                ts.Genre AS Genre, ts.AvgScore as AvgScore, ts.Description as Description, ts.Image as Image, 
-                ts.Link as Link 
-            ";
-
-            var result = await session.RunAsync(query, new {
-                actorFirstName,
-                actorLastName
-            });
-            
-            var tVShows = new List<TVShow>();
-            while (await result.FetchAsync())
-            {
-                TVShow tvShow = new TVShow
-                {
-                    NumOfSeasons = int.Parse(result.Current["NumOfSeasons"].As<string>()),
-                    Name = result.Current["Name"].As<string>(),
-                    YearOfRelease = int.Parse(result.Current["YearOfRelease"].As<string>()),
-                    Genre = result.Current["Genre"].As<string>(),
-                    AvgScore = double.Parse(result.Current["AvgScore"].As<string>()),
-                    Description = result.Current["Description"].As<string>(),
-                    Image = result.Current["Image"].As<string>(),
-                    Link = result.Current["Link"].As<string>()
-                };
-    
-                tVShows.Add(tvShow);
-            }
- 
-            return Ok(tVShows);
-        }
-        catch(Exception e)
-        {
-            return BadRequest(e.Message);
-        }
-    }
-
-    [HttpGet("GetMoviesWithDirector/{directorFirstName}/{directorLastName}")] //vraca sve filmove sa trazenim direktorem 
-    public async Task<ActionResult> GetMoviesWithDirector(string directorFirstName, string directorLastName)
-    {
-        try
-        {
-            using var session = _neo4jDriver.AsyncSession();
-            var query = @"
-                MATCH (:Director {FirstName: $directorFirstName, LastName: $directorLastName})-[:DIRECTED_IN]->(movie:Movie)
-                RETURN movie.Duration AS Duration, movie.Name AS Name, movie.YearOfRelease AS YearOfRelease, movie.Genre AS Genre,
-                movie.AvgScore as AvgScore, movie.Description as Description, movie.Image as Image, movie.Link as Link 
-            ";
-
-            var result = await session.RunAsync(query, new {
-                directorFirstName,
-                directorLastName
-            });
-
-            var movies = new List<Movie>();
-            while (await result.FetchAsync())
-            {
-                Movie movie = new Movie
-                {
-                    Duration = int.Parse(result.Current["Duration"].As<string>()),
-                    Name = result.Current["Name"].As<string>(),
-                    YearOfRelease = int.Parse(result.Current["YearOfRelease"].As<string>()),
-                    Genre = result.Current["Genre"].As<string>(),
-                    AvgScore = double.Parse(result.Current["AvgScore"].As<string>()),
-                    Description = result.Current["Description"].As<string>(),
-                    Image = result.Current["Image"].As<string>(),
-                    Link = result.Current["Link"].As<string>()
-                };
-    
-                movies.Add(movie);
-            }
- 
-            return Ok(movies);
-        }
-        catch(Exception e)
-        {
-            return BadRequest(e.Message);
-        }
-    }
-
-    [HttpGet("GetTVShowsWithDirector/{directorFirstName}/{directorLastName}")] //vraca sve serije sa trazenim direktorem
-    public async Task<ActionResult> GetTVShowsWithDirector(string directorFirstName, string directorLastName)
-    {
-        try
-        {
-            using var session = _neo4jDriver.AsyncSession();
-            var query = @"
-                MATCH (:Director {FirstName: $directorFirstName, LastName: $directorLastName})-[:DIRECTED_IN]->(ts:TVShow)
-                RETURN ts.NumOfSeasons AS NumOfSeasons, ts.Name AS Name, ts.YearOfRelease AS YearOfRelease, 
-                ts.Genre AS Genre, ts.AvgScore as AvgScore, ts.Description as Description, ts.Image as Image, 
-                ts.Link as Link 
-            ";
-
-            var result = await session.RunAsync(query, new {
-                directorFirstName,
-                directorLastName
-            });
-            
-            var tVShows = new List<TVShow>();
-            while (await result.FetchAsync())
-            {
-                TVShow tvShow = new TVShow
-                {
-                    NumOfSeasons = int.Parse(result.Current["NumOfSeasons"].As<string>()),
-                    Name = result.Current["Name"].As<string>(),
-                    YearOfRelease = int.Parse(result.Current["YearOfRelease"].As<string>()),
-                    Genre = result.Current["Genre"].As<string>(),
-                    AvgScore = double.Parse(result.Current["AvgScore"].As<string>()),
-                    Description = result.Current["Description"].As<string>(),
-                    Image = result.Current["Image"].As<string>(),
-                    Link = result.Current["Link"].As<string>()
-                };
-    
-                tVShows.Add(tvShow);
-            }
- 
-            return Ok(tVShows);
         }
         catch(Exception e)
         {
