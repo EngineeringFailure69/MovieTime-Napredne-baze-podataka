@@ -454,6 +454,9 @@ public class MovieController : ControllerBase
     {
         try
         {
+            if(filterRequest.Page < 1)
+                return BadRequest("Invalid page");
+            int limit = 10;
             await using var session = _neo4jDriver.AsyncSession();
 
             var queryBuilder = new StringBuilder(@"
@@ -523,9 +526,13 @@ public class MovieController : ControllerBase
                     m.Description AS Description, 
                     m.Duration AS Duration,
                     m.Image as Image,
-                    m.Link as Link");
+                    m.Link as Link
+                    SKIP $skip
+                    LIMIT $limit");
 
             var query = queryBuilder.ToString();
+            parameters["skip"] =  (filterRequest.Page-1)*limit;
+            parameters["limit"] = limit;
             var movies = new List<Movie>();
             var result = await session.RunAsync(query, parameters);
 

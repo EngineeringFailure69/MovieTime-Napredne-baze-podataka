@@ -16,4 +16,7 @@ public class FilterRequest
     [MaxLength(30)]
     public string? DirectorLastName { get; set; }
 
+    [DefaultValue(1)]
+    public int Page { get; set; }
+
 }

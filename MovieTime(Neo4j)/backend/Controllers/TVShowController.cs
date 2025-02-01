@@ -458,7 +458,7 @@ public class TVShowController : ControllerBase
         try
         {
             await using var session = _neo4jDriver.AsyncSession();
-
+            int limit = 10;
             var queryBuilder = new StringBuilder(@"
                 MATCH (ts:TVShow)");
 
@@ -526,9 +526,13 @@ public class TVShowController : ControllerBase
                     ts.Description AS Description, 
                     ts.NumOfSeasons AS NumOfSeasons,
                     ts.Image as Image,
-                    ts.Link as Link");
+                    ts.Link as Link
+                    SKIP $skip
+                    LIMIT $limit");
 
             var query = queryBuilder.ToString();
+            parameters["skip"] = (filterRequest.Page-1)*limit;
+            parameters["limit"] = limit;
             var tvShows = new List<TVShow>();
             var result = await session.RunAsync(query, parameters);
 
