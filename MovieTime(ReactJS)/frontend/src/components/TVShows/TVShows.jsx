@@ -30,25 +30,34 @@ const TVShows = ({filterOpen,searchValue}) => {
 
   const [tvShows, setTvShows] = useState([]);
   const [favoriteTVShows, setFavoriteTVShows] = useState([]);
+  const [prevFilteredTVShows, setPrevFilteredTVShows] = useState([]);
+  const [filteredTVShows, setFilteredTVShows] = useState([]);
   const [selectedTVShow, setSelectedTVShow] = useState(null);
   const [overlayVisible, setOverlayVisible] = useState(false);
   const [currentPage, setCurrentPage] = useState(1); 
   const [userEmail, setUserEmail] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [emptyPage, setEmptyPage] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
-  const tvShowsToDisplay = location.pathname === '/user-favourite-tvShows' ? favoriteTVShows : tvShows;
+  const tvShowsToDisplay = location.pathname === '/user-favourite-tvShows'
+  ? favoriteTVShows
+    : filteredTVShows.length > 0
+    ? filteredTVShows
+    : tvShows;
 
   // sortiranje
   const [isSorted, setIsSorted] = useState(false);
   const [sortValue, setSortValue] = useState('');
-  // search
 
   const fetchFavouriteTVShows = async (userEmail) => {
     try {
       const favoriteTVShowsResponse = await axios.get(`http://localhost:5023/User/GetFavoriteTVShows/${userEmail}`);
       setFavoriteTVShows(favoriteTVShowsResponse.data);
+      if(favoriteTVShows.length === 0) {
+        setEmptyPage(1);
+      }
     } catch (error) {
       console.error('Greska u pribavljanju omiljenih serija', error);
     }
@@ -81,7 +90,15 @@ const TVShows = ({filterOpen,searchValue}) => {
               url = `http://localhost:5023/TVShow/GetPageTVShows/${currentPage}`;
           }
           const tvShowsResponse = await axios.get(url);
-          setTvShows(tvShowsResponse.data);
+          if(filteredTVShows.length > 0) {
+            const listSearchedTVShows = tvShowsResponse.data;
+            const newFiltered = listSearchedTVShows.filter((tvShow) =>
+              prevFilteredTVShows.some((filteredTVShow) => filteredTVShow.name === tvShow.name)
+            );
+            setFilteredTVShows(newFiltered);
+          } else {
+            setTvShows(tvShowsResponse.data);
+          }
         } catch (error) {
           console.error('Greska u pribavljanju serija.', error);
         }
@@ -90,7 +107,15 @@ const TVShows = ({filterOpen,searchValue}) => {
       const fetchSearchTVShows = async () => {
         try {
           const searchResponse = await axios.get(`http://localhost:5023/TVShow/GetTVShowSearch/${searchValue}/${currentPage}`);
-          setTvShows(searchResponse.data);
+          if(filteredTVShows.length > 0) {
+            const listSearchedTVShows = searchResponse.data;
+            const newFiltered = listSearchedTVShows.filter((tvShow) =>
+              filteredTVShows.some((filteredTVShow) => filteredTVShow.name === tvShow.name)
+            );
+            setFilteredTVShows(newFiltered);
+          } else {
+            setMovies(searchResponse.data);
+          }
         } catch (error) {
           console.error('Greska u pretrazi serija.', error);
         }
@@ -145,23 +170,68 @@ const TVShows = ({filterOpen,searchValue}) => {
     }
   };
 
+  const handleRemoveFromFavorites = async (tvShowName, email) => {
+    try {
+      const removeFromFavoritesResponse = await axios.post(`http://localhost:5023/User/RemoveFavoriteTVShow/${tvShowName}/${email}`);
+      if (removeFromFavoritesResponse.status === 200) {
+        const newFavoriteTVShows = favoriteTVShows.filter(tvShow => tvShow.name !== tvShowName);
+        setFavoriteTVShows(newFavoriteTVShows);
+        if(newFavoriteTVShows.length === 0) {
+          setEmptyPage(true);
+        }
+        setCurrentPage(1);
+        alert(`Serija ${tvShowName} je uspešno uklonjena sa liste omiljenih serija.`);
+        setOverlayVisible(false);
+        
+      } else {
+        alert('Došlo je do greške pri uklanjanju serije iz liste omiljenih.');
+      }
+    } catch (error) {
+      console.error('Greska pri uklanjanju serije iz liste omiljenih serija.', error);
+    }
+  };
+
+  const handleRating = async (tvShowName, rating) => {
+    try {
+      const newRating = rating.target.value * 2;
+      const response = await axios.post(`http://localhost:5023/User/RateTVShow/${tvShowName}/${userEmail}/${newRating}/OK`);
+      if (response.status === 200) {
+        setTvShows(prevTVShows => 
+          prevTVShows.map(tvShow => tvShow.name === tvShowName 
+            ? { ...tvShow, rating: rating }
+            : tvShow))
+
+        alert('Uspešno ste ocenili seriju.');
+        handleCloseDialog();
+        setCurrentPage(1);
+      } else {
+        alert('Došlo je do greške pri ocenjivanju.');
+      }
+    } catch (error) {
+      console.error('Greska pri ocenjivanju serije:', error);
+    }
+  };
+
   return (
     <>
             <div className={!filterOpen ? 'sekcije' : `${styles.filterSekcije}`}>
               {filterOpen && (
-                <Sidebar type='tvShows' />
+                <Sidebar type='tvShows'
+                 setFilteredTVShows={setFilteredTVShows}
+                 setPrevFilteredTVShows={setPrevFilteredTVShows}
+                 currentPage={currentPage} />
               )}
-                <section id="tvshows">
-                  <div className={`${styles.programOptionsContainer}`}>
-                    <div className="home-text">
-                      <p><strong>Serije:</strong></p>
-                    </div>
-                    <div className={`${styles.menuContainer}`}>
-                      <MenuSort sortValue={sortValue} setSortValue={setSortValue} setIsSorted={setIsSorted}/>
-                    </div>
-                  </div>
-                  {tvShowsToDisplay.length > 0 && (
+                <section id="tvshows" className={tvShowsToDisplay.length > 0 ? '' : `${styles.emptySection}`}>
+                  {tvShowsToDisplay.length > 0 ? (
                   <>
+                    <div className={`${styles.programOptionsContainer}`}>
+                      <div className="home-text">
+                        <p><strong>Serije:</strong></p>
+                      </div>
+                      <div className={`${styles.menuContainer}`}>
+                        <MenuSort sortValue={sortValue} setSortValue={setSortValue} setIsSorted={setIsSorted}/>
+                      </div>
+                    </div>
                     <div className="items-container">
                       <div className="menu-container">
                         {tvShowsToDisplay.map((tvShow, index) => (
@@ -191,6 +261,40 @@ const TVShows = ({filterOpen,searchValue}) => {
                       </section>
                     )}
                   </>
+              ) : (
+                <>
+                {emptyPage && (
+                  <>
+                    {location.pathname === '/user' ? (
+                      <Box mb={50} style={{display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
+                      <div className="home-text">
+                          <h2><strong>Stigli ste do kraja</strong></h2>
+                      </div>
+                      <Button
+                        padding={3} 
+                        backgroundColor='#007bff'
+                        variant="solid"
+                        _hover={{
+                          bg: "#0056b3",
+                          color: "white",
+                          boxShadow: "md",
+                          transition: "background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease",
+                        }}
+                        onClick={() => setCurrentPage(1)}
+                      >
+                        <FaReact size='lg'/> Nazad na početnu stranicu
+                      </Button>
+                    </Box>
+                    ) : (
+                      <Box mb={50} style={{display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
+                      <div className="home-text">
+                          <h2><strong>Lista omiljenih serija je prazna</strong></h2>
+                      </div>
+                      </Box>
+                    )}
+                  </>
+                )}
+                </>
               )}
               </section>
             </div> 
@@ -272,7 +376,13 @@ const TVShows = ({filterOpen,searchValue}) => {
                                 disabled={favoriteTVShows.some(tvShow => tvShow.name === selectedTVShow.name)}>
                                 <FaHeart style={{color: 'red'}} /> Dodaj u omiljene
                               </Button>
-                              <Rating size="lg" colorPalette='yellow' allowHalf defaultValue={3.5} mr={3} />
+                              <Rating 
+                              size="lg" 
+                              colorPalette='yellow' 
+                              allowHalf 
+                              defaultValue={3.5} 
+                              mr={3}
+                              onChange={(newRating) => handleRating(selectedTVShow.name, newRating)} />
                             </>
                           ) : (
                             <Button 
@@ -285,7 +395,7 @@ const TVShows = ({filterOpen,searchValue}) => {
                                   boxShadow: "md",
                                   transition: "background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease",
                                 }}
-                                onClick={() => handleAddToFavourites(selectedTVShow.name,userEmail)}>
+                                onClick={() => handleRemoveFromFavorites(selectedTVShow.name, userEmail)}>
                                 <RiDislikeFill style={{color: 'red'}} /> Ukloni iz omiljenih
                               </Button>
                           )}

@@ -31,6 +31,8 @@ const Movies = ({filterOpen,searchValue}) => {
 
     const [movies, setMovies] = useState([]);
     const [favoriteMovies, setFavoriteMovies] = useState([]);
+    const [prevFilteredMovies, setPrevFilteredMovies] = useState([]);
+    const [filteredMovies, setFilteredMovies] = useState([]);
     const [selectedMovie, setSelectedMovie] = useState(null);
     const [overlayVisible, setOverlayVisible] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
@@ -40,18 +42,23 @@ const Movies = ({filterOpen,searchValue}) => {
     const location = useLocation();
     const navigate = useNavigate();
 
-    const moviesToDisplay = location.pathname === '/user-favourite-movies' ? favoriteMovies : movies;
+    const moviesToDisplay = location.pathname === '/user-favourite-movies'
+    ? favoriteMovies
+    : filteredMovies.length > 0
+    ? filteredMovies
+    : movies;
 
     // sortiranje
     const [isSorted, setIsSorted] = useState(false);
     const [sortValue, setSortValue] = useState('');
-    // search
-  
 
     const fetchFavouriteMovies = async (userEmail) => {
       try {
         const favoriteMoviesResponse = await axios.get(`http://localhost:5023/User/GetFavoriteMovies/${userEmail}`);
         setFavoriteMovies(favoriteMoviesResponse.data);
+        if(favoriteMovies.length === 0) {
+          setEmptyPage(true);
+        }
       } catch (error) {
         console.error('Greska u pribavljanju omiljenih filmova', error);
       }
@@ -85,7 +92,15 @@ const Movies = ({filterOpen,searchValue}) => {
             url = `http://localhost:5023/Movie/GetPageMovies/${currentPage}`;
           }
           const moviesResponse = await axios.get(url);
-          setMovies(moviesResponse.data);
+          if(filteredMovies.length > 0) {
+            const listSearchedMovies = moviesResponse.data;
+            const newFiltered = listSearchedMovies.filter((movie) =>
+              prevFilteredMovies.some((filteredMovie) => filteredMovie.name === movie.name)
+            );
+            setFilteredMovies(newFiltered);
+          } else {
+            setMovies(moviesResponse.data);
+          }
         } catch (error) {
           console.error('Greska u pribavljanju filmova.', error);
         }
@@ -94,7 +109,15 @@ const Movies = ({filterOpen,searchValue}) => {
       const fetchSearchMovies = async () => {
         try {
           const searchResponse = await axios.get(`http://localhost:5023/Movie/GetMoviesSearch/${searchValue}/${currentPage}`);
-          setMovies(searchResponse.data);
+          if(filteredMovies.length > 0) {
+            const listSearchedMovies = searchResponse.data;
+            const newFiltered = listSearchedMovies.filter((movie) =>
+              filteredMovies.some((filteredMovie) => filteredMovie.name === movie.name)
+            );
+            setFilteredMovies(newFiltered);
+          } else {
+            setMovies(searchResponse.data);
+          }
         } catch (error) {
           console.error('Greska u pretrazi filmova.', error);
         }
@@ -106,12 +129,6 @@ const Movies = ({filterOpen,searchValue}) => {
         fetchMovies();
       }
 
-      if(moviesToDisplay.length === 0) {
-        const interval = setInterval(() => {
-          setEmptyPage(true);  
-        }, 3000);
-        return () => clearInterval(interval);
-      }
 
     }, [currentPage, sortValue, searchValue, isSorted]);
 
@@ -155,11 +172,56 @@ const Movies = ({filterOpen,searchValue}) => {
         }
       };
 
+      const handleRemoveFromFavorites = async (movieName, email) => {
+        try {
+          const removeFromFavoritesResponse = await axios.post(`http://localhost:5023/User/RemoveFavoriteMovie/${movieName}/${email}`);
+          if (removeFromFavoritesResponse.status === 200) {
+            const newFavoriteMovies = favoriteMovies.filter(movie => movie.name !== movieName);
+            setFavoriteMovies(newFavoriteMovies);
+            if(newFavoriteMovies.length === 0) {
+              setEmptyPage(true);
+            }
+            setCurrentPage(1);
+            alert(`Film ${movieName} je uspešno uklonjen sa liste omiljenih filmova.`);
+            setOverlayVisible(false);
+            
+          } else {
+            alert('Došlo je do greške pri uklanjanju filma iz liste omiljenih.');
+          }
+        } catch (error) {
+          console.error('Greska pri uklanjanju filma iz liste omiljenih filmova.', error);
+        }
+      };
+
+      const handleRating = async (movieName, rating) => {
+        try {
+          const newRating = rating.target.value * 2;
+          const response = await axios.post(`http://localhost:5023/User/RateMovie/${movieName}/${userEmail}/${newRating}/OK`);
+          if (response.status === 200) {
+            setMovies(prevMovies => 
+              prevMovies.map(movie => movie.name === movieName 
+                ? { ...movie, rating: rating }
+                : movie))
+
+            alert('Uspešno ste ocenili film.');
+            handleCloseDialog();
+            setCurrentPage(1);
+          } else {
+            alert('Došlo je do greške pri ocenjivanju.');
+          }
+        } catch (error) {
+          console.error('Greska pri ocenjivanju filma:', error);
+        }
+      };
+
     return (
         <>
         <div className={!filterOpen ? 'sekcije' : `${styles.filterSekcije}`}>
           {filterOpen && (
-            <Sidebar type='movies' />
+            <Sidebar type='movies' 
+            setFilteredMovies={setFilteredMovies} 
+            setPrevFilteredMovies={setPrevFilteredMovies}
+            currentPage={currentPage} />
           )}
             <section id="movies" className={moviesToDisplay.length > 0 ? '' : `${styles.emptySection}`}>
               {moviesToDisplay.length > 0 ? (
@@ -204,25 +266,35 @@ const Movies = ({filterOpen,searchValue}) => {
                 ) : (
                   <>
                   {emptyPage && (
-                    <Box mb={50} style={{display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
-                      <div className="home-text">
-                          <h2><strong>Stigli ste do kraja</strong></h2>
-                      </div>
-                      <Button
-                        padding={3} 
-                        backgroundColor='#007bff'
-                        variant="solid"
-                        _hover={{
-                          bg: "#0056b3",
-                          color: "white",
-                          boxShadow: "md",
-                          transition: "background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease",
-                        }}
-                        onClick={() => setCurrentPage(1)}
-                      >
-                        <FaReact size='lg'/> Nazad na početnu stranicu
-                      </Button>
-                    </Box>
+                    <>
+                      {location.pathname === '/user' ? (
+                        <Box mb={50} style={{display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
+                        <div className="home-text">
+                            <h2><strong>Stigli ste do kraja</strong></h2>
+                        </div>
+                        <Button
+                          padding={3} 
+                          backgroundColor='#007bff'
+                          variant="solid"
+                          _hover={{
+                            bg: "#0056b3",
+                            color: "white",
+                            boxShadow: "md",
+                            transition: "background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease",
+                          }}
+                          onClick={() => setCurrentPage(1)}
+                        >
+                          <FaReact size='lg'/> Nazad na početnu stranicu
+                        </Button>
+                      </Box>
+                      ) : (
+                        <Box mb={50} style={{display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
+                        <div className="home-text">
+                            <h2><strong>Lista omiljenih filmova je prazna</strong></h2>
+                        </div>
+                        </Box>
+                      )}
+                    </>
                   )}
                   </>
                 )}
@@ -308,7 +380,13 @@ const Movies = ({filterOpen,searchValue}) => {
                             disabled={favoriteMovies.some(movie => movie.name === selectedMovie.name)}>
                             <FaHeart style={{color: 'red'}} /> Dodaj u omiljene
                           </Button>
-                          <Rating size="lg" colorPalette='yellow' allowHalf defaultValue={3.5} mr={3} />
+                          <Rating 
+                          size="lg" 
+                          colorPalette='yellow' 
+                          allowHalf 
+                          defaultValue={3.5} 
+                          mr={3} 
+                          onChange={(newRating) => handleRating(selectedMovie.name, newRating)}/>
                         </>
                       ) : (
                         <Button 
@@ -321,7 +399,7 @@ const Movies = ({filterOpen,searchValue}) => {
                             boxShadow: "md",
                             transition: "background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease",
                           }}
-                          onClick={() => handleAddToFavourites(selectedMovie.name,userEmail)}>
+                          onClick={() => handleRemoveFromFavorites(selectedMovie.name, userEmail)}>
                           <RiDislikeFill style={{color: 'red'}} /> Ukloni iz omiljenih
                         </Button>
                       )}

@@ -658,7 +658,7 @@ public class TVShowController : ControllerBase
             await using var session = _neo4jDriver.AsyncSession();        
             var query = @"
                 MATCH (ts:TVShow)
-                RETURN DISTINCT m.Genre AS Genre
+                RETURN DISTINCT ts.Genre AS Genre
             ";
 
             var genres = new List<string>();

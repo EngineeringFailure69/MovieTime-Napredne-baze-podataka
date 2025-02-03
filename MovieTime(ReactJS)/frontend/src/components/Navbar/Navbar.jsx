@@ -89,7 +89,11 @@ const Navbar = ({ setLoginDialogOpen, filterOpen, setFilterOpen, searchValue, se
       case 'admin':
         return (
           <>
-              <li><HashLink to="/admin" onClick={handleMenuClick}>Admin Panel</HashLink></li>
+              <li><HashLink to="/admin" onClick={handleMenuClick}>Početna</HashLink></li>
+              <li><HashLink to="/admin-actor" onClick={handleMenuClick}>Glumac</HashLink></li>
+              <li><HashLink to="/admin-director" onClick={handleMenuClick}>Režiser</HashLink></li>
+              <li><HashLink to="/admin-movie" onClick={handleMenuClick}>Film</HashLink></li>
+              <li><HashLink to="/admin-tvShow" onClick={handleMenuClick}>Serija</HashLink></li>
               <li><HashLink to="/" onClick={handleLogout}>Odjava</HashLink></li>
           </>
         );

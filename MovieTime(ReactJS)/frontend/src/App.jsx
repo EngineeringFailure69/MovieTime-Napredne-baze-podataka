@@ -7,10 +7,14 @@ import Navbar from "./components/Navbar/Navbar";
 import { HomeUser } from "./pages/User/HomeUser";
 import { FavouriteMovies } from "./pages/User/FavouriteMovies";
 import PrivateRoutes from "./utils/PrivateRoutes";
-import { HomeAdmin } from "./pages/Admin/HomeAdmin";
 import { GlobalTVShows } from "./pages/Global/GlobalTVShows";
 import { UserTVShows } from "./pages/User/UserTVShows";
 import { FavouriteTVShows } from "./pages/User/FavouriteTVShows";
+import { HomeAdmin } from "./pages/Admin/HomeAdmin";
+import { AdminActor } from "./pages/Admin/AdminActor";
+import { AdminDirector } from "./pages/Admin/AdminDirector";
+import { AdminMovie } from "./pages/Admin/AdminMovie";
+import { AdminTVShow } from "./pages/Admin/AdminTVShow";
 
 const App = () => {
 
@@ -47,6 +51,10 @@ const App = () => {
                 </Route>
                 <Route element={<PrivateRoutes role = 'admin' />}>
                   <Route path="/admin" element={<HomeAdmin/>} />
+                  <Route path="/admin-actor" element={<AdminActor/>} />
+                  <Route path="/admin-director" element={<AdminDirector/>} />
+                  <Route path="/admin-movie" element={<AdminMovie/>} />
+                  <Route path="/admin-tvShow" element={<AdminTVShow/>} />
                 </Route>
               </Routes>
           </BrowserRouter>
