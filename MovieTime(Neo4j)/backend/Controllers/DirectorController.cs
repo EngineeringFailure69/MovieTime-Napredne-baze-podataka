@@ -185,4 +185,33 @@ public class DirectorController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+
+
+
+    [HttpPost("LinkDirectorToTvShow/{directorFirstName}/{directorLastName}/{showName}")]
+    public async Task<ActionResult> LinkDirectorToTVShow(string directorFirstName, string directorLastName, string showName)
+    {
+        try
+        {
+            await using var session = _neo4jDriver.AsyncSession();
+
+            var query = @"
+                MATCH(d:Director{FirstName: $directorFirstName, LastName: $directorLastName})
+                MATCH(ts:TVShow{Name: $showName})
+                MERGE (d)-[:DIRECTED_IN]->(ts)
+            ";
+
+            await session.RunAsync(query, new {
+                directorFirstName, 
+                directorLastName, 
+                showName, 
+            });
+
+            return Ok("Director has been successfully connected to the TV show");
+        }
+        catch(Exception e)
+        {
+            return BadRequest(e.Message);
+        }
+    }
 }
