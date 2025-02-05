@@ -443,7 +443,7 @@ export const AdminMovie = () => {
         </Button>
       </Grid>
       <VStack mt={20} align="flex-start" spacing={4} gap={4}>
-                {renderContent()}
+        {renderContent()}
       </VStack>
     </Box>
     </div>

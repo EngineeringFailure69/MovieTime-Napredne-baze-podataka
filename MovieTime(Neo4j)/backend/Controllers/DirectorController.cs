@@ -100,8 +100,8 @@ public class DirectorController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
-    [HttpDelete("DeleteActor/{FirstName}/{LastName}")]
-    public async Task<ActionResult> DeleteActor(string FirstName , string LastName) {
+    [HttpDelete("DeleteDirector/{FirstName}/{LastName}")]
+    public async Task<ActionResult> DeleteDirector(string FirstName , string LastName) {
         try
         {
             await using var session = _neo4jDriver.AsyncSession();
