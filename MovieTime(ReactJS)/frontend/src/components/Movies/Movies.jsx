@@ -52,6 +52,49 @@ const Movies = ({filterOpen,searchValue}) => {
     const [isSorted, setIsSorted] = useState(false);
     const [sortValue, setSortValue] = useState('');
 
+    const [counter, setCounter] = useState(0);
+    const [recommendationError, setRecommendationError] = useState('');
+    const [recommendationMovies, setRecommendationMovies] = useState([]);
+    const [recommendationType, setRecommendationType] = useState('');
+
+    const handleCounterClick = async () => {
+      const newCounter = counter + 1 > 3 ? 1 : counter + 1;
+      setCounter(newCounter);
+  
+      let url;
+      switch (newCounter) { 
+        case 1:
+          url = `http://localhost:5023/Recommendation/RecommendMovieAccordingToFavoriteGenre/${userEmail}`;
+          setRecommendationType('Preporuka na osnovu omiljenog žanra');
+          break;
+        case 2:
+          url = `http://localhost:5023/Recommendation/RecommendMovieAccordingToActor/${userEmail}`;
+          setRecommendationType('Preporuka na osnovu glumca');
+          break;
+        case 3:
+          url = `http://localhost:5023/Recommendation/RecommendMovieAccordingToDirector/${userEmail}`;
+          setRecommendationType('Preporuka na osnovu režisera');
+          break;
+        default:
+          return;
+      }
+  
+      try {
+        const response = await axios.get(url);
+        if (response.status === 200) {
+          setRecommendationMovies(response.data);  
+          setRecommendationError('');  
+        } else {
+          setRecommendationMovies([]);
+          setRecommendationError('Nije moguće dobiti preporuke. Pokušajte ponovo kasnije.');
+        }
+      } catch (error) {
+        setRecommendationMovies([]);
+        setRecommendationError('Greška u pribavljanju preporuka: ' + error.response.data);
+        console.error('Greška u pribavljanju preporuka:', error);
+      }
+    };
+  
     const fetchFavouriteMovies = async (userEmail) => {
       try {
         const favoriteMoviesResponse = await axios.get(`http://localhost:5023/User/GetFavoriteMovies/${userEmail}`);
@@ -230,9 +273,11 @@ const Movies = ({filterOpen,searchValue}) => {
                     <div className="home-text">
                       <p><strong>Filmovi:</strong></p>
                     </div>
-                    <div className={`${styles.menuContainer}`}>
-                      <MenuSort sortValue={sortValue} setSortValue={setSortValue} setIsSorted={setIsSorted}/>
-                    </div>
+                    {location.pathname === '/user' && (
+                      <div className={`${styles.menuContainer}`}>
+                        <MenuSort sortValue={sortValue} setSortValue={setSortValue} setIsSorted={setIsSorted}/>
+                      </div>
+                    )}
                   </div>
                   <div className="items-container">
                     <div className="menu-container">
@@ -250,6 +295,48 @@ const Movies = ({filterOpen,searchValue}) => {
                         </div>
                       ))}
                     </div>
+                    <Button
+                      mt={10}
+                      mb={10}
+                      padding={3} 
+                      backgroundColor='#007bff'
+                      variant="solid"
+                      _hover={{
+                        bg: "#0056b3",
+                        color: "white",
+                        boxShadow: "md",
+                        transition: "background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease",
+                      }}
+                      onClick={handleCounterClick} 
+                    > Vrati preporučene filmove </Button>
+                    {recommendationMovies.length > 0 ? (
+                      <>
+                      <div className={`${styles.programOptionsContainer}`}>
+                        <div className="home-text">
+                          <p><strong>{recommendationType}:</strong></p>
+                        </div>
+                      </div>
+                      <div className="menu-container">
+                        {recommendationMovies.map((movie, index) => (
+                          <div className="image-container" key={index} onClick={() => handleImageClick(movie)}>
+                            <Image
+                              alt={movie.name} 
+                              src={movie.image ? `data:image/jpeg;base64,${movie.image}` : ''}
+                              style={{
+                                width: '200px',
+                                height: '300px',
+                                objectFit: 'cover',
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      </>
+                    ) : (
+                      <div className="no-movies-message">
+                        Nema filmova za preporuku ( {recommendationError} ) 
+                      </div>
+                  )}
                   </div>
                   {location.pathname !== '/user-favourite-movies' && (
                     <section id="pagination">

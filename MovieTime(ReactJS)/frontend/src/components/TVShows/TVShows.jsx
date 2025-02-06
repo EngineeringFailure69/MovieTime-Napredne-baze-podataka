@@ -51,17 +51,60 @@ const TVShows = ({filterOpen,searchValue}) => {
   const [isSorted, setIsSorted] = useState(false);
   const [sortValue, setSortValue] = useState('');
 
-  const fetchFavouriteTVShows = async (userEmail) => {
+  const [counter, setCounter] = useState(0);
+  const [recommendationError, setRecommendationError] = useState('');
+  const [recommendationTVShows, setRecommendationTVShows] = useState([]);
+  const [recommendationType, setRecommendationType] = useState('');
+
+  const handleCounterClick = async () => {
+    const newCounter = counter + 1 > 3 ? 1 : counter + 1;
+    setCounter(newCounter);
+
+    let url;
+    switch (newCounter) { 
+      case 1:
+        url = `http://localhost:5023/Recommendation/RecommendTVShowAccordingToFavoriteGenre/${userEmail}`;
+        setRecommendationType('Preporuka na osnovu omiljenog žanra');
+        break;
+      case 2:
+        url = `http://localhost:5023/Recommendation/RecommendTVShowAccordingToActor/${userEmail}`;
+        setRecommendationType('Preporuka na osnovu glumca');
+        break;
+      case 3:
+        url = `http://localhost:5023/Recommendation/RecommendTVShowAccordingToDirector/${userEmail}`;
+        setRecommendationType('Preporuka na osnovu režisera');
+        break;
+      default:
+        return;
+    }
+
     try {
-      const favoriteTVShowsResponse = await axios.get(`http://localhost:5023/User/GetFavoriteTVShows/${userEmail}`);
-      setFavoriteTVShows(favoriteTVShowsResponse.data);
-      if(favoriteTVShows.length === 0) {
-        setEmptyPage(1);
+      const response = await axios.get(url);
+      if (response.status === 200) {
+        setRecommendationTVShows(response.data);  
+        setRecommendationError('');  
+      } else {
+        setRecommendationTVShows([]);
+        setRecommendationError('Nije moguće dobiti preporuke. Pokušajte ponovo kasnije.');
       }
     } catch (error) {
-      console.error('Greska u pribavljanju omiljenih serija', error);
+      setRecommendationTVShows([]);
+      setRecommendationError('Greška u pribavljanju preporuka: ' + error.response.data);
+      console.error('Greška u pribavljanju preporuka:', error);
     }
   };
+
+const fetchFavouriteTVShows = async (userEmail) => {
+  try {
+    const favoriteTVShowsResponse = await axios.get(`http://localhost:5023/User/GetFavoriteTVShows/${userEmail}`);
+    setFavoriteTVShows(favoriteTVShowsResponse.data);
+    if(favoriteTVShows.length === 0) {
+      setEmptyPage(1);
+    }
+  } catch (error) {
+    console.error('Greska u pribavljanju omiljenih serija', error);
+  }
+};
 
   useEffect(() => {   
     const userFetch = async () => {
@@ -228,9 +271,11 @@ const TVShows = ({filterOpen,searchValue}) => {
                       <div className="home-text">
                         <p><strong>Serije:</strong></p>
                       </div>
-                      <div className={`${styles.menuContainer}`}>
-                        <MenuSort sortValue={sortValue} setSortValue={setSortValue} setIsSorted={setIsSorted}/>
-                      </div>
+                      {location.pathname === '/user-tvShows' && (
+                        <div className={`${styles.menuContainer}`}>
+                          <MenuSort sortValue={sortValue} setSortValue={setSortValue} setIsSorted={setIsSorted}/>
+                        </div>
+                      )}
                     </div>
                     <div className="items-container">
                       <div className="menu-container">
@@ -248,6 +293,48 @@ const TVShows = ({filterOpen,searchValue}) => {
                           </div>
                         ))}
                       </div>
+                      <Button
+                        mt={10}
+                        mb={10}
+                        padding={3} 
+                        backgroundColor='#007bff'
+                        variant="solid"
+                        _hover={{
+                          bg: "#0056b3",
+                          color: "white",
+                          boxShadow: "md",
+                          transition: "background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease",
+                        }}
+                        onClick={handleCounterClick} 
+                      > Vrati preporučene serije </Button>
+                      {recommendationTVShows.length > 0 ? (
+                        <>
+                        <div className={`${styles.programOptionsContainer}`}>
+                          <div className="home-text">
+                            <p><strong>{recommendationType}:</strong></p>
+                          </div>
+                        </div>
+                        <div className="menu-container">
+                          {recommendationTVShows.map((tvShow, index) => (
+                            <div className="image-container" key={index} onClick={() => handleImageClick(tvShow)}>
+                              <Image
+                                alt={tvShow.name} 
+                                src={tvShow.image ? `data:image/jpeg;base64,${tvShow.image}` : ''}
+                                style={{
+                                  width: '200px',
+                                  height: '300px',
+                                  objectFit: 'cover',
+                                }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        </>
+                      ) : (
+                        <div className="no-movies-message">
+                          Nema serija za preporuku ( {recommendationError} ) 
+                        </div>
+                    )}
                     </div>
                     {location.pathname !== '/user-favourite-tvShows' && (
                       <section id="pagination">
