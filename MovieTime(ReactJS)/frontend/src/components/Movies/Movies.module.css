@@ -1,0 +1,26 @@
+.programOptionsContainer {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.menuContainer {
+    display: flex;
+    gap: 10px;
+    position: 'relative';
+}
+
+.filterSekcije {
+  height: calc(100vh - 80px);
+  overflow-y: auto; 
+  display: grid;
+  grid-template-columns: 1fr 4fr;
+}
+
+.emptySection {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
