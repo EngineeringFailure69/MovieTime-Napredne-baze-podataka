@@ -121,6 +121,8 @@ public class UserController : ControllerBase
         return jwt;
     }
     
+ 
+
     [HttpPost("AddFavoriteMovie/{movieName}/{userEmail}")]
     public async Task<ActionResult> AddFavoriteMovie(string movieName, string userEmail)
     {
@@ -128,12 +130,20 @@ public class UserController : ControllerBase
         {
             using var session = _neo4jDriver.AsyncSession();
 
-           
+            
+            var movieCheckQuery = @"
+                MATCH (m:Movie {Name: $movieName})
+                RETURN m";
+            var movieResult = await session.RunAsync(movieCheckQuery, new { movieName });
+            if (!await movieResult.FetchAsync())
+            {
+                return NotFound($"Movie with the name {movieName} does not exist.");
+            }
+
+            
             var checkQuery = @"
                 MATCH (u:User {Email: $userEmail})-[r:FAVORITE]->(m:Movie {Name: $movieName})
-                RETURN r
-            ";
-
+                RETURN r";
             var checkResult = await session.RunAsync(checkQuery, new
             {
                 movieName,
@@ -145,12 +155,11 @@ public class UserController : ControllerBase
                 return BadRequest("Movie is already marked as favorite");
             }
 
+            
             var query = @"
-                MATCH(m:Movie{Name: $movieName})
-                MATCH(u:User{Email: $userEmail})
-                MERGE (u)-[:FAVORITE]->(m)
-            ";
-
+                MATCH (m:Movie {Name: $movieName})
+                MATCH (u:User {Email: $userEmail})
+                MERGE (u)-[:FAVORITE]->(m)";
             await session.RunAsync(query, new {
                 movieName,
                 userEmail
@@ -158,48 +167,7 @@ public class UserController : ControllerBase
 
             return Ok("Movie has been successfully added to the favorites");
         }
-        catch(Exception e)
-        {
-            return BadRequest(e.Message);
-        }
-    }
-
-    [HttpPost("AddFavoriteTVShow/{showName}/{userEmail}")]
-    public async Task<ActionResult> AddFavoriteTVShow(string showName, string userEmail)
-    {
-        try
-        {
-            using var session = _neo4jDriver.AsyncSession();
-
-            var checkQuery = @"
-                MATCH (u:User {Email: $userEmail})-[r:FAVORITE]->(ts:TVShow {Name: $showName})
-                RETURN r
-            ";
-
-            var checkResult = await session.RunAsync(checkQuery, new
-            {
-                showName,
-                userEmail
-            });
-
-            if (await checkResult.FetchAsync())
-            {
-                return BadRequest("TVShow is already marked as favorite");
-            }
-
-            var query = @"
-                MATCH(ts:TVShow{Name: $showName})
-                MATCH(u:User{Email: $userEmail})
-                MERGE (u)-[:FAVORITE]->(ts)
-            ";
-
-            await session.RunAsync(query, new {
-                showName,
-                userEmail
-            });
-            return Ok("TV show has been successfully added to the favorites");
-        }
-        catch(Exception e)
+        catch (Exception e)
         {
             return BadRequest(e.Message);
         }
@@ -211,47 +179,66 @@ public class UserController : ControllerBase
         try
         {
             using var session = _neo4jDriver.AsyncSession();
-            var query = @"
-                MATCH(u:User{Email: $userEmail})-[f:FAVORITE]->(m:Movie{Name: $movieName})
-                DELETE f
-            ";
 
-            await session.RunAsync(query, new {
-                movieName,
-                userEmail
-            });
+            
+            var query = @"
+                MATCH (u:User {Email: $userEmail})-[f:FAVORITE]->(m:Movie {Name: $movieName})
+                RETURN f";
+            
+            var result = await session.RunAsync(query, new { movieName, userEmail });
+
+            
+            if (!await result.FetchAsync())
+            {
+                return NotFound($"Movie {movieName} is not in the favorites of user {userEmail}.");
+            }
+
+            
+            await session.RunAsync(@"
+                MATCH (u:User {Email: $userEmail})-[f:FAVORITE]->(m:Movie {Name: $movieName})
+                DELETE f", new { movieName, userEmail });
 
             return Ok("Movie has been successfully removed from the favorites");
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             return BadRequest(e.Message);
         }
     }
 
-    [HttpPost("RemoveFavoriteTVShow/{showName}/{userEmail}")]
+
+   [HttpPost("RemoveFavoriteTVShow/{showName}/{userEmail}")]
     public async Task<ActionResult> RemoveFavoriteTVShow(string showName, string userEmail)
     {
         try
         {
             using var session = _neo4jDriver.AsyncSession();
-            var query = @"
-                MATCH(u:User{Email: $userEmail})-[f:FAVORITE]->(ts:TVShow{Name: $showName})
-                DELETE f
-            ";
 
-            await session.RunAsync(query, new {
-                showName,
-                userEmail
-            });
+            
+            var query = @"
+                MATCH (u:User {Email: $userEmail})-[f:FAVORITE]->(ts:TVShow {Name: $showName})
+                RETURN f";
+            
+            var result = await session.RunAsync(query, new { showName, userEmail });
+
+            
+            if (!await result.FetchAsync())
+            {
+                return NotFound($"TV show {showName} is not in the favorites of user {userEmail}.");
+            }
+
+            await session.RunAsync(@"
+                MATCH (u:User {Email: $userEmail})-[f:FAVORITE]->(ts:TVShow {Name: $showName})
+                DELETE f", new { showName, userEmail });
 
             return Ok("TV show has been successfully removed from the favorites");
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             return BadRequest(e.Message);
         }
     }
+
 
     [HttpPost("RateMovie/{movieName}/{userEmail}/{score}/{feedback}")]
     public async Task<ActionResult> RateMovie(string movieName, string userEmail, double score, string feedback)
@@ -265,51 +252,60 @@ public class UserController : ControllerBase
 
             using var session = _neo4jDriver.AsyncSession();
 
+            
+            var checkMovieQuery = @"
+                MATCH (m:Movie {Name: $movieName})
+                RETURN m";
+            
+            var movieResult = await session.RunAsync(checkMovieQuery, new { movieName });
 
-            var checkExistingRatingQuery = @"
-            MATCH (u:User{Email: $userEmail})-[r:RATED]->(m:Movie{Name: $movieName})
-            RETURN r
-            ";
-
-            var existingRating = await session.RunAsync(checkExistingRatingQuery, new { userEmail, movieName });
+            if (!await movieResult.FetchAsync())
+            {
+                return NotFound($"Movie {movieName} does not exist.");
+            }
 
             
+            var checkExistingRatingQuery = @"
+                MATCH (u:User {Email: $userEmail})-[r:RATED]->(m:Movie {Name: $movieName})
+                RETURN r";
+            
+            var existingRating = await session.RunAsync(checkExistingRatingQuery, new { userEmail, movieName });
+
             if (await existingRating.FetchAsync())
             {
                 return BadRequest("You have already rated this movie.");
             }
-            var query = @"
-                MATCH(m:Movie{Name: $movieName})
-                MATCH(u:User{Email: $userEmail})
-                CREATE (u)-[r:RATED]->(m)
-                SET r.Score = $score, r.Feedback = $feedback
-            ";
 
+            
+            var query = @"
+                MATCH (m:Movie {Name: $movieName})
+                MATCH (u:User {Email: $userEmail})
+                CREATE (u)-[r:RATED]->(m)
+                SET r.Score = $score, r.Feedback = $feedback";
+            
             await session.RunAsync(query, new {
                 movieName,
                 userEmail,
-                score, 
+                score,
                 feedback
             });
 
+            
             var updateAvgScoreQuery = @"
-            MATCH (m:Movie {Name: $movieName})<-[r:RATED]-(u:User)
-            WITH m, AVG(r.Score) AS averageScore
-            SET m.AvgScore = averageScore
-            ";
-
-            await session.RunAsync(updateAvgScoreQuery, new
-            {
-                movieName
-            });
+                MATCH (m:Movie {Name: $movieName})<-[r:RATED]-(u:User)
+                WITH m, AVG(r.Score) AS averageScore
+                SET m.AvgScore = averageScore";
+            
+            await session.RunAsync(updateAvgScoreQuery, new { movieName });
 
             return Ok("Movie has been successfully rated");
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             return BadRequest(e.Message);
         }
     }
+
 
     [HttpPost("RateTVShow/{TVShowName}/{userEmail}/{score}/{feedback}")]
     public async Task<ActionResult> RateTVShow(string TVShowName, string userEmail, double score, string feedback)
@@ -321,56 +317,62 @@ public class UserController : ControllerBase
                 return BadRequest("Score must be between 0 and 10.");
             }
 
-            
-
             using var session = _neo4jDriver.AsyncSession();
 
-            var checkExistingRatingQuery = @"
-            MATCH (u:User{Email: $userEmail})-[r:RATED]->(ts:TVShow{Name: $TVShowName})
-            RETURN r
-            ";
+            
+            var checkTVShowQuery = @"
+                MATCH (ts:TVShow {Name: $TVShowName})
+                RETURN ts";
+            
+            var tvShowResult = await session.RunAsync(checkTVShowQuery, new { TVShowName });
 
+            if (!await tvShowResult.FetchAsync())
+            {
+                return NotFound($"TV show {TVShowName} does not exist.");
+            }
+
+            
+            var checkExistingRatingQuery = @"
+                MATCH (u:User {Email: $userEmail})-[r:RATED]->(ts:TVShow {Name: $TVShowName})
+                RETURN r";
+            
             var existingRating = await session.RunAsync(checkExistingRatingQuery, new { userEmail, TVShowName });
 
-            
             if (await existingRating.FetchAsync())
             {
-                return BadRequest("You have already rated this movie.");
+                return BadRequest("You have already rated this TV show.");
             }
+
             
-
             var query = @"
-                MATCH(ts:TVShow{Name: $TVShowName})
-                MATCH(u:User{Email: $userEmail})
+                MATCH (ts:TVShow {Name: $TVShowName})
+                MATCH (u:User {Email: $userEmail})
                 CREATE (u)-[r:RATED]->(ts)
-                SET r.Score = $score, r.Feedback = $feedback
-            ";
-
+                SET r.Score = $score, r.Feedback = $feedback";
+            
             await session.RunAsync(query, new {
                 TVShowName,
                 userEmail,
-                score, 
+                score,
                 feedback
             });
 
+            
             var updateAvgScoreQuery = @"
-            MATCH (ts:TVShow {Name: $TVShowName})<-[r:RATED]-(u:User)
-            WITH ts, AVG(r.Score) AS averageScore
-            SET ts.AvgScore = averageScore
-            ";
-
-            await session.RunAsync(updateAvgScoreQuery, new
-            {
-                TVShowName
-            });
+                MATCH (ts:TVShow {Name: $TVShowName})<-[r:RATED]-(u:User)
+                WITH ts, AVG(r.Score) AS averageScore
+                SET ts.AvgScore = averageScore";
+            
+            await session.RunAsync(updateAvgScoreQuery, new { TVShowName });
 
             return Ok("TV show has been successfully rated");
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             return BadRequest(e.Message);
         }
     }
+
 
 
     [HttpGet("GetFavoriteMovies/{userEmail}")]
@@ -379,6 +381,20 @@ public class UserController : ControllerBase
         try
         {
             using var session = _neo4jDriver.AsyncSession();
+
+            
+            var checkUserQuery = @"
+                MATCH (u:User {Email: $userEmail})
+                RETURN u
+            ";
+
+            var userResult = await session.RunAsync(checkUserQuery, new { userEmail });
+
+            if (!await userResult.FetchAsync())
+            {
+                return NotFound("User does not exist.");
+            }
+
             var query = @"
                 MATCH (u:User {Email: $userEmail})-[:FAVORITE]->(movie:Movie)
                 RETURN movie.Duration AS Duration, movie.Name AS Name, movie.YearOfRelease AS YearOfRelease, movie.Genre AS Genre,
@@ -403,29 +419,44 @@ public class UserController : ControllerBase
                     Image = result.Current["Image"].As<string>(),
                     Link = result.Current["Link"].As<string>()
                 };
-    
+
                 movies.Add(movie);
             }
- 
+
             return Ok(movies);
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             return BadRequest(e.Message);
         }
     }
 
-    [HttpGet("GetFavoriteTVShows/{userEmail}")]
+
+   [HttpGet("GetFavoriteTVShows/{userEmail}")]
     public async Task<ActionResult> GetFavoriteTVShows(string userEmail)
     {
         try
         {
             using var session = _neo4jDriver.AsyncSession();
+
+            
+            var checkUserQuery = @"
+                MATCH (u:User {Email: $userEmail})
+                RETURN u
+            ";
+
+            var userResult = await session.RunAsync(checkUserQuery, new { userEmail });
+
+            if (!await userResult.FetchAsync())
+            {
+                return NotFound("User does not exist.");
+            }
+
             var query = @"
                 MATCH (u:User {Email: $userEmail})-[:FAVORITE]->(ts:TVShow)
                 RETURN ts.NumOfSeasons AS NumOfSeasons, ts.Name AS Name, ts.YearOfRelease AS YearOfRelease, 
-                ts.Genre AS Genre, ts.AvgScore as AvgScore, ts.Description as Description, ts.Image as Image, 
-                ts.Link as Link 
+                    ts.Genre AS Genre, ts.AvgScore as AvgScore, ts.Description as Description, ts.Image as Image, 
+                    ts.Link as Link 
             ";
 
             var result = await session.RunAsync(query, new {
@@ -446,15 +477,16 @@ public class UserController : ControllerBase
                     Image = result.Current["Image"].As<string>(),
                     Link = result.Current["Link"].As<string>()
                 };
-    
+
                 tvShows.Add(tvShow);
             }
- 
+
             return Ok(tvShows);
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             return BadRequest(e.Message);
         }
     }
+
 }

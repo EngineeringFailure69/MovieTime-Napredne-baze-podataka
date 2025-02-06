@@ -79,27 +79,43 @@ public class DirectorController : ControllerBase
         try
         {
             using var session = _neo4jDriver.AsyncSession();
-            var query = @"
-            MATCH (d:Director {FirstName: $firstName, LastName: $lastName})
-            SET d.DateOfBirth = $dateOfBirth, d.MoviesMade = $moviesMade
-            RETURN d";
 
+            
+            var directorCheckQuery = @"
+                MATCH (d:Director {FirstName: $firstName, LastName: $lastName})
+                RETURN d";
+            var directorCheckResult = await session.RunAsync(directorCheckQuery, new
+            {
+                firstName = director.FirstName,
+                lastName = director.LastName
+            });
+            if (!await directorCheckResult.FetchAsync())
+            {
+                return NotFound($"Director {director.FirstName} {director.LastName} does not exist.");
+            }
+
+            
+            var updateQuery = @"
+                MATCH (d:Director {FirstName: $firstName, LastName: $lastName})
+                SET d.DateOfBirth = $dateOfBirth, d.MoviesMade = $moviesMade
+                RETURN d";
             var parameters = new
             {
                 firstName = director.FirstName,
                 lastName = director.LastName,
-                dateOfBirth = director.DateOfBirth.ToString("yyyy-MM-dd"), 
-                moviesMade = director.MoviesMade 
+                dateOfBirth = director.DateOfBirth.ToString("yyyy-MM-dd"),
+                moviesMade = director.MoviesMade
             };
 
-            var result = await session.RunAsync(query, parameters);
-            return Ok($"Sucessfully updated director : {director.FirstName} {director.LastName}");           
+            var result = await session.RunAsync(updateQuery, parameters);
+            return Ok($"Successfully updated director: {director.FirstName} {director.LastName}");
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             return BadRequest(ex.Message);
         }
     }
+
     [HttpDelete("DeleteDirector/{FirstName}/{LastName}")]
     public async Task<ActionResult> DeleteDirector(string FirstName , string LastName) {
         try
@@ -125,32 +141,57 @@ public class DirectorController : ControllerBase
         }
     }
     
-    [HttpPost("LinkDirectorToMovie/{directorFirstName}/{directorLastName}/{movieName}")]
+   [HttpPost("LinkDirectorToMovie/{directorFirstName}/{directorLastName}/{movieName}")]
     public async Task<ActionResult> LinkDirectorToMovie(string directorFirstName, string directorLastName, string movieName)
     {
         try
         {
             await using var session = _neo4jDriver.AsyncSession();
 
-            var query = @"
-                MATCH(d:Director{FirstName: $directorFirstName, LastName: $directorLastName})
-                MATCH(m:Movie{Name: $movieName})
-                MERGE (d)-[:DIRECTED_IN]->(m)
-            ";
+            
+            var directorCheckQuery = @"
+                MATCH (d:Director {FirstName: $directorFirstName, LastName: $directorLastName})
+                RETURN d";
+            var directorResult = await session.RunAsync(directorCheckQuery, new
+            {
+                directorFirstName,
+                directorLastName
+            });
+            if (!await directorResult.FetchAsync())
+            {
+                return NotFound($"Director {directorFirstName} {directorLastName} does not exist.");
+            }
 
-            await session.RunAsync(query, new {
-                directorFirstName, 
-                directorLastName, 
+            
+            var movieCheckQuery = @"
+                MATCH (m:Movie {Name: $movieName})
+                RETURN m";
+            var movieResult = await session.RunAsync(movieCheckQuery, new { movieName });
+            if (!await movieResult.FetchAsync())
+            {
+                return NotFound($"Movie with the name {movieName} does not exist.");
+            }
+
+            
+            var linkQuery = @"
+                MATCH (d:Director {FirstName: $directorFirstName, LastName: $directorLastName})
+                MATCH (m:Movie {Name: $movieName})
+                MERGE (d)-[:DIRECTED_IN]->(m)";
+            await session.RunAsync(linkQuery, new
+            {
+                directorFirstName,
+                directorLastName,
                 movieName
             });
 
-            return Ok("Director has been successfully connected to the movie");
+            return Ok("Director has been successfully connected to the movie.");
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             return BadRequest(e.Message);
         }
     }
+
 
 
     [HttpGet("GetAllName")]
@@ -188,30 +229,55 @@ public class DirectorController : ControllerBase
 
 
 
-    [HttpPost("LinkDirectorToTvShow/{directorFirstName}/{directorLastName}/{showName}")]
+   [HttpPost("LinkDirectorToTVShow/{directorFirstName}/{directorLastName}/{showName}")]
     public async Task<ActionResult> LinkDirectorToTVShow(string directorFirstName, string directorLastName, string showName)
     {
         try
         {
             await using var session = _neo4jDriver.AsyncSession();
 
-            var query = @"
-                MATCH(d:Director{FirstName: $directorFirstName, LastName: $directorLastName})
-                MATCH(ts:TVShow{Name: $showName})
-                MERGE (d)-[:DIRECTED_IN]->(ts)
-            ";
+            
+            var directorCheckQuery = @"
+                MATCH (d:Director {FirstName: $directorFirstName, LastName: $directorLastName})
+                RETURN d";
+            var directorResult = await session.RunAsync(directorCheckQuery, new
+            {
+                directorFirstName,
+                directorLastName
+            });
+            if (!await directorResult.FetchAsync())
+            {
+                return NotFound($"Director {directorFirstName} {directorLastName} does not exist.");
+            }
 
-            await session.RunAsync(query, new {
-                directorFirstName, 
-                directorLastName, 
-                showName, 
+            
+            var showCheckQuery = @"
+                MATCH (ts:TVShow {Name: $showName})
+                RETURN ts";
+            var showResult = await session.RunAsync(showCheckQuery, new { showName });
+            if (!await showResult.FetchAsync())
+            {
+                return NotFound($"TV show with the name {showName} does not exist.");
+            }
+
+            
+            var linkQuery = @"
+                MATCH (d:Director {FirstName: $directorFirstName, LastName: $directorLastName})
+                MATCH (ts:TVShow {Name: $showName})
+                MERGE (d)-[:DIRECTED_IN]->(ts)";
+            await session.RunAsync(linkQuery, new
+            {
+                directorFirstName,
+                directorLastName,
+                showName
             });
 
-            return Ok("Director has been successfully connected to the TV show");
+            return Ok("Director has been successfully connected to the TV show.");
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             return BadRequest(e.Message);
         }
     }
+
 }

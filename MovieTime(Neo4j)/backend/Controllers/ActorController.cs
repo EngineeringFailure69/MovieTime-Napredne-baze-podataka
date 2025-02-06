@@ -79,28 +79,49 @@ public class ActorController : ControllerBase
         try
         {
             using var session = _neo4jDriver.AsyncSession();
-            var query = @"
+            
+            
+            var checkQuery = @"
             MATCH (a:Actor {FirstName: $firstName, LastName: $lastName})
-            SET a.DateOfBirth = $dateOfBirth, a.Awards = $awards
-            RETURN a
-            ";
-
+            RETURN a";
+            
             var parameters = new
             {
                 firstName = actor.FirstName,
-                lastName = actor.LastName,
-                dateOfBirth = actor.DateOfBirth.ToString("yyyy-MM-dd"), 
-                awards = actor.Awards 
+                lastName = actor.LastName
             };
 
-            var result = await session.RunAsync(query, parameters);
-            return Ok($"Sucessfully updated actor : {actor.FirstName} {actor.LastName}");           
+            var existingActorResult = await session.RunAsync(checkQuery, parameters);
+
+            if (!await existingActorResult.FetchAsync())
+            {
+                return NotFound($"Actor {actor.FirstName} {actor.LastName} does not exist.");
+            }
+
+            
+            var updateQuery = @"
+            MATCH (a:Actor {FirstName: $firstName, LastName: $lastName})
+            SET a.DateOfBirth = $dateOfBirth, a.Awards = $awards
+            RETURN a";
+
+            var updateParameters = new
+            {
+                firstName = actor.FirstName,
+                lastName = actor.LastName,
+                dateOfBirth = actor.DateOfBirth.ToString("yyyy-MM-dd"),
+                awards = actor.Awards
+            };
+
+            var result = await session.RunAsync(updateQuery, updateParameters);
+
+            return Ok($"Successfully updated actor: {actor.FirstName} {actor.LastName}");
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             return BadRequest(ex.Message);
         }
     }
+
     [HttpDelete("DeleteActor/{FirstName}/{LastName}")]
     public async Task<ActionResult> DeleteActor(string FirstName , string LastName) {
         try
@@ -133,26 +154,47 @@ public class ActorController : ControllerBase
         {
             await using var session = _neo4jDriver.AsyncSession();
 
-            var query = @"
-                MATCH(a:Actor{FirstName: $actorFirstName, LastName: $actorLastName})
-                MATCH(m:Movie{Name: $movieName})
-                CREATE (a)-[:ACTED_IN {RoleType: $roleType}]->(m)
-            ";
+            
+            var actorCheckQuery = @"
+                MATCH (a:Actor {FirstName: $actorFirstName, LastName: $actorLastName})
+                RETURN a";
+            var actorResult = await session.RunAsync(actorCheckQuery, new { actorFirstName, actorLastName });
+            if (!await actorResult.FetchAsync())
+            {
+                return NotFound($"Actor {actorFirstName} {actorLastName} does not exist.");
+            }
 
-            await session.RunAsync(query, new {
-                actorFirstName, 
-                actorLastName, 
-                movieName, 
+            
+            var movieCheckQuery = @"
+                MATCH (m:Movie {Name: $movieName})
+                RETURN m";
+            var movieResult = await session.RunAsync(movieCheckQuery, new { movieName });
+            if (!await movieResult.FetchAsync())
+            {
+                return NotFound($"Movie with the name {movieName} does not exist.");
+            }
+
+            
+            var linkQuery = @"
+                MATCH (a:Actor {FirstName: $actorFirstName, LastName: $actorLastName})
+                MATCH (m:Movie {Name: $movieName})
+                CREATE (a)-[:ACTED_IN {RoleType: $roleType}]->(m)";
+            await session.RunAsync(linkQuery, new
+            {
+                actorFirstName,
+                actorLastName,
+                movieName,
                 roleType
             });
 
-            return Ok("Actor has been successfully connected to the movie");
+            return Ok("Actor has been successfully linked to the movie.");
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             return BadRequest(e.Message);
         }
     }
+
 
     [HttpPost("LinkActorToTVShow/{actorFirstName}/{actorLastName}/{showName}/{roleType}")]
     public async Task<ActionResult> LinkActorToTVShow(string actorFirstName, string actorLastName, string showName, string roleType)
@@ -161,40 +203,73 @@ public class ActorController : ControllerBase
         {
             await using var session = _neo4jDriver.AsyncSession();
 
-            var query = @"
-                MATCH(a:Actor{FirstName: $actorFirstName, LastName: $actorLastName})
-                MATCH(ts:TVShow{Name: $showName})
-                CREATE (a)-[:ACTED_IN {RoleType: $roleType}]->(ts)
-            ";
+            
+            var actorCheckQuery = @"
+                MATCH (a:Actor {FirstName: $actorFirstName, LastName: $actorLastName})
+                RETURN a";
+            var actorResult = await session.RunAsync(actorCheckQuery, new { actorFirstName, actorLastName });
+            if (!await actorResult.FetchAsync())
+            {
+                return NotFound($"Actor {actorFirstName} {actorLastName} does not exist.");
+            }
 
-            await session.RunAsync(query, new {
-                actorFirstName, 
-                actorLastName, 
-                showName, 
+            
+            var showCheckQuery = @"
+                MATCH (ts:TVShow {Name: $showName})
+                RETURN ts";
+            var showResult = await session.RunAsync(showCheckQuery, new { showName });
+            if (!await showResult.FetchAsync())
+            {
+                return NotFound($"TV show with the name {showName} does not exist.");
+            }
+
+            
+            var linkQuery = @"
+                MATCH (a:Actor {FirstName: $actorFirstName, LastName: $actorLastName})
+                MATCH (ts:TVShow {Name: $showName})
+                CREATE (a)-[:ACTED_IN {RoleType: $roleType}]->(ts)";
+            await session.RunAsync(linkQuery, new
+            {
+                actorFirstName,
+                actorLastName,
+                showName,
                 roleType
             });
 
-            return Ok("Actor has been successfully connected to the TV show");
+            return Ok("Actor has been successfully linked to the TV show.");
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             return BadRequest(e.Message);
         }
     }
-    [HttpGet("GetActorsFromMovie/{movieName}")] //vraca sve glumce koji su glumili u trazenom filmu, ovo ime je valjda dobro (oci emoji) :)
+
+    [HttpGet("GetActorsFromMovie/{movieName}")]
     public async Task<ActionResult> GetActorsFromMovie(string movieName)
     {
         try
         {
             using var session = _neo4jDriver.AsyncSession();
+
+            
+            var movieCheckQuery = @"
+                MATCH (m:Movie {Name: $movieName})
+                RETURN m";
+            var movieResult = await session.RunAsync(movieCheckQuery, new { movieName });
+            if (!await movieResult.FetchAsync())
+            {
+                return NotFound($"Movie with the name {movieName} does not exist.");
+            }
+
+            
             var query = @"
                 MATCH (:Movie {Name: $movieName})<-[:ACTED_IN]-(actor:Actor)
-                RETURN actor.FirstName AS FirstName, actor.LastName AS LastName, actor.DateOfBirth AS DateOfBirth, actor.Awards AS Awards
-            ";
+                RETURN actor.FirstName AS FirstName, 
+                    actor.LastName AS LastName, 
+                    actor.DateOfBirth AS DateOfBirth, 
+                    actor.Awards AS Awards";
 
-            var result = await session.RunAsync(query, new {
-                movieName
-            });
+            var result = await session.RunAsync(query, new { movieName });
 
             var actors = new List<Actor>();
             while (await result.FetchAsync())
@@ -206,32 +281,45 @@ public class ActorController : ControllerBase
                     DateOfBirth = DateTime.Parse(result.Current["DateOfBirth"].As<string>()),
                     Awards = result.Current["Awards"].As<List<string>>()
                 };
-    
+
                 actors.Add(actor);
             }
- 
+
             return Ok(actors);
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             return BadRequest(e.Message);
         }
     }
 
-    [HttpGet("GetActorsFromTVShow/{showName}")] //vraca sve glumce koji su glumili u trazenoj seriji, ovo ime je valjda dobro (oci emoji) :)
+
+   [HttpGet("GetActorsFromTVShow/{showName}")]
     public async Task<ActionResult> GetActorsFromTVShow(string showName)
     {
         try
         {
             using var session = _neo4jDriver.AsyncSession();
+
+           
+            var showCheckQuery = @"
+                MATCH (ts:TVShow {Name: $showName})
+                RETURN ts";
+            var showResult = await session.RunAsync(showCheckQuery, new { showName });
+            if (!await showResult.FetchAsync())
+            {
+                return NotFound($"TV show with the name {showName} does not exist.");
+            }
+
+            
             var query = @"
                 MATCH (:TVShow {Name: $showName})<-[:ACTED_IN]-(actor:Actor)
-                RETURN actor.FirstName AS FirstName, actor.LastName AS LastName, actor.DateOfBirth AS DateOfBirth, actor.Awards AS Awards
-            ";
+                RETURN actor.FirstName AS FirstName, 
+                    actor.LastName AS LastName, 
+                    actor.DateOfBirth AS DateOfBirth, 
+                    actor.Awards AS Awards";
 
-            var result = await session.RunAsync(query, new {
-                showName
-            });
+            var result = await session.RunAsync(query, new { showName });
 
             var actors = new List<Actor>();
             while (await result.FetchAsync())
@@ -243,17 +331,18 @@ public class ActorController : ControllerBase
                     DateOfBirth = DateTime.Parse(result.Current["DateOfBirth"].As<string>()),
                     Awards = result.Current["Awards"].As<List<string>>()
                 };
-    
+
                 actors.Add(actor);
             }
- 
+
             return Ok(actors);
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             return BadRequest(e.Message);
         }
     }
+
 
 
     [HttpGet("GetAllName")]

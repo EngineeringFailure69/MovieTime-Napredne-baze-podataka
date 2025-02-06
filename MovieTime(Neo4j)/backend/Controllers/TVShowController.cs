@@ -182,14 +182,30 @@ public class TVShowController : ControllerBase
         }
     }
 
-    [HttpPut("UpdateTVShow")]
-    public async Task<ActionResult> UpdateTVShow([FromForm]TVShow tvShow , IFormFile image) {
+   [HttpPut("UpdateTVShow")]
+    public async Task<ActionResult> UpdateTVShow([FromForm]TVShow tvShow , IFormFile image)
+    {
         try
         {
-            if(image == null || image.Length == 0)
+            using var session = _neo4jDriver.AsyncSession();
+
+            var checkTVShowQuery = @"
+                MATCH (ts:TVShow {Name: $name})
+                RETURN ts
+            ";
+
+            var tvShowResult = await session.RunAsync(checkTVShowQuery, new { name = tvShow.Name });
+
+            if (!await tvShowResult.FetchAsync())
+            {
+                return NotFound("TV Show does not exist.");
+            }
+
+            if (image == null || image.Length == 0)
             {
                 return BadRequest("Image not found");
             }
+
             byte[] fileBytes;
             using (var stream = image.OpenReadStream())
             {
@@ -197,16 +213,16 @@ public class TVShowController : ControllerBase
                 await stream.ReadAsync(fileBytes, 0, (int)image.Length);
             }
             string base64Image = Convert.ToBase64String(fileBytes);
-            using var session = _neo4jDriver.AsyncSession();
+
             var query = @"
-            MATCH (ts:TVShow {Name: $name})
-            SET ts.YearOfRelease = $yearOfRelease, 
-                ts.Genre = $genre, 
-                ts.AvgScore = $avgScore,
-                ts.Description = $description,
-                ts.NumOfSeasons = $numOfSeasons,
-                ts.Image = $image,
-                ts.Link = $link
+                MATCH (ts:TVShow {Name: $name})
+                SET ts.YearOfRelease = $yearOfRelease, 
+                    ts.Genre = $genre, 
+                    ts.AvgScore = $avgScore,
+                    ts.Description = $description,
+                    ts.NumOfSeasons = $numOfSeasons,
+                    ts.Image = $image,
+                    ts.Link = $link
             ";
 
             var parameters = new
@@ -221,14 +237,16 @@ public class TVShowController : ControllerBase
                 link = tvShow.Link,
             };
 
-            var result = await session.RunAsync(query, parameters);
-            return Ok($"TVShow: {tvShow.Name} has been successfully updated.");
+            await session.RunAsync(query, parameters);
+
+            return Ok($"TV Show: {tvShow.Name} has been successfully updated.");
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             return BadRequest(ex.Message);
         }
     }
+
 
     [HttpGet("GetTVShowAlphabeticalOrder/{asc}/{page}")]
     public async Task<ActionResult> GetTVShowAlphabeticalOrder(bool asc , int page)
@@ -561,25 +579,34 @@ public class TVShowController : ControllerBase
         }
     }
 
-    [HttpGet("GetTVShowsWithActor/{actorFirstName}/{actorLastName}")] //vraca sve serije u kojima je glumio glumac, ako smislite bolje 
-    //ime za funkciju, promenite ga :(
+  [HttpGet("GetTVShowsWithActor/{actorFirstName}/{actorLastName}")]
     public async Task<ActionResult> GetTVShowsWithActor(string actorFirstName, string actorLastName)
     {
         try
         {
             using var session = _neo4jDriver.AsyncSession();
+
+            var checkActorQuery = @"
+                MATCH (a:Actor {FirstName: $actorFirstName, LastName: $actorLastName})
+                RETURN a
+            ";
+
+            var actorResult = await session.RunAsync(checkActorQuery, new { actorFirstName, actorLastName });
+
+            if (!await actorResult.FetchAsync())
+            {
+                return NotFound("Actor not found.");
+            }
+
             var query = @"
                 MATCH (:Actor {FirstName: $actorFirstName, LastName: $actorLastName})-[:ACTED_IN]->(ts:TVShow)
                 RETURN ts.NumOfSeasons AS NumOfSeasons, ts.Name AS Name, ts.YearOfRelease AS YearOfRelease, 
-                ts.Genre AS Genre, ts.AvgScore as AvgScore, ts.Description as Description, ts.Image as Image, 
-                ts.Link as Link 
+                    ts.Genre AS Genre, ts.AvgScore as AvgScore, ts.Description as Description, 
+                    ts.Image as Image, ts.Link as Link 
             ";
 
-            var result = await session.RunAsync(query, new {
-                actorFirstName,
-                actorLastName
-            });
-            
+            var result = await session.RunAsync(query, new { actorFirstName, actorLastName });
+
             var tVShows = new List<TVShow>();
             while (await result.FetchAsync())
             {
@@ -594,36 +621,47 @@ public class TVShowController : ControllerBase
                     Image = result.Current["Image"].As<string>(),
                     Link = result.Current["Link"].As<string>()
                 };
-    
+
                 tVShows.Add(tvShow);
             }
- 
+
             return Ok(tVShows);
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             return BadRequest(e.Message);
         }
     }
 
-     [HttpGet("GetTVShowsWithDirector/{directorFirstName}/{directorLastName}")] //vraca sve serije sa trazenim direktorem
+
+    [HttpGet("GetTVShowsWithDirector/{directorFirstName}/{directorLastName}")]
     public async Task<ActionResult> GetTVShowsWithDirector(string directorFirstName, string directorLastName)
     {
         try
         {
             using var session = _neo4jDriver.AsyncSession();
+
+            var checkDirectorQuery = @"
+                MATCH (d:Director {FirstName: $directorFirstName, LastName: $directorLastName})
+                RETURN d
+            ";
+
+            var directorResult = await session.RunAsync(checkDirectorQuery, new { directorFirstName, directorLastName });
+
+            if (!await directorResult.FetchAsync())
+            {
+                return NotFound("Director not found.");
+            }
+
             var query = @"
                 MATCH (:Director {FirstName: $directorFirstName, LastName: $directorLastName})-[:DIRECTED_IN]->(ts:TVShow)
                 RETURN ts.NumOfSeasons AS NumOfSeasons, ts.Name AS Name, ts.YearOfRelease AS YearOfRelease, 
-                ts.Genre AS Genre, ts.AvgScore as AvgScore, ts.Description as Description, ts.Image as Image, 
-                ts.Link as Link 
+                    ts.Genre AS Genre, ts.AvgScore as AvgScore, ts.Description as Description, 
+                    ts.Image as Image, ts.Link as Link 
             ";
 
-            var result = await session.RunAsync(query, new {
-                directorFirstName,
-                directorLastName
-            });
-            
+            var result = await session.RunAsync(query, new { directorFirstName, directorLastName });
+
             var tVShows = new List<TVShow>();
             while (await result.FetchAsync())
             {
@@ -638,17 +676,18 @@ public class TVShowController : ControllerBase
                     Image = result.Current["Image"].As<string>(),
                     Link = result.Current["Link"].As<string>()
                 };
-    
+
                 tVShows.Add(tvShow);
             }
- 
+
             return Ok(tVShows);
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             return BadRequest(e.Message);
         }
     }
+
 
     [HttpGet("GetAllUniqueGenres")]
     public async Task<ActionResult> GetAllUniqueGenres()

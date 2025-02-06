@@ -180,31 +180,47 @@ public class MovieController : ControllerBase
         }
     }
 
-    [HttpPut("UpdateMovie")]
-    public async Task<ActionResult> UpdateMovie([FromForm]Movie movie , IFormFile image) {
+   [HttpPut("UpdateMovie")]
+    public async Task<ActionResult> UpdateMovie([FromForm] Movie movie, IFormFile image)
+    {
         try
         {
-            if(image == null || image.Length == 0)
+            using var session = _neo4jDriver.AsyncSession();
+            var checkMovieQuery = @"
+                MATCH (m:Movie {Name: $name})
+                RETURN m
+            ";
+
+            var movieResult = await session.RunAsync(checkMovieQuery, new { name = movie.Name });
+
+            if (!await movieResult.FetchAsync())
+            {
+                return NotFound("Movie does not exist.");
+            }
+
+            if (image == null || image.Length == 0)
             {
                 return BadRequest("Image not found");
             }
+
             byte[] fileBytes;
             using (var stream = image.OpenReadStream())
             {
                 fileBytes = new byte[image.Length];
                 await stream.ReadAsync(fileBytes, 0, (int)image.Length);
             }
+
             string base64Image = Convert.ToBase64String(fileBytes);
-            using var session = _neo4jDriver.AsyncSession();
+
             var query = @"
-            MATCH (m:Movie {Name: $name})
-            SET m.YearOfRelease = $yearOfRelease, 
-                m.Genre = $genre, 
-                m.AvgScore = $avgScore,
-                m.Description = $description,
-                m.Duration = $duration,
-                m.Image = $image,
-                m.Link = $link
+                MATCH (m:Movie {Name: $name})
+                SET m.YearOfRelease = $yearOfRelease, 
+                    m.Genre = $genre, 
+                    m.AvgScore = $avgScore,
+                    m.Description = $description,
+                    m.Duration = $duration,
+                    m.Image = $image,
+                    m.Link = $link
             ";
 
             var parameters = new
@@ -219,14 +235,16 @@ public class MovieController : ControllerBase
                 link = movie.Link,
             };
 
-            var result = await session.RunAsync(query, parameters);
+            await session.RunAsync(query, parameters);
+
             return Ok($"Movie: {movie.Name} has been successfully updated.");
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             return BadRequest(ex.Message);
         }
     }
+
 
     [HttpGet("GetMoviesAlphabeticalOrder/{asc}/{page}")]
     public async Task<ActionResult> GetMoviesAlphabeticalOrder(bool asc , int page)
@@ -560,17 +578,29 @@ public class MovieController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
-    [HttpGet("GetMoviesWithActor/{actorFirstName}/{actorLastName}")] //vraca sve filmove u kojima je glumio glumac, ako smislite bolje 
-    //ime za funkciju, promenite ga :(
+    [HttpGet("GetMoviesWithActor/{actorFirstName}/{actorLastName}")]
     public async Task<ActionResult> GetMoviesWithActors(string actorFirstName, string actorLastName)
     {
         try
         {
             using var session = _neo4jDriver.AsyncSession();
+
+            var checkActorQuery = @"
+                MATCH (a:Actor {FirstName: $actorFirstName, LastName: $actorLastName})
+                RETURN a
+            ";
+
+            var actorResult = await session.RunAsync(checkActorQuery, new { actorFirstName, actorLastName });
+
+            if (!await actorResult.FetchAsync())
+            {
+                return NotFound("Actor does not exist.");
+            }
+
             var query = @"
                 MATCH (:Actor {FirstName: $actorFirstName, LastName: $actorLastName})-[:ACTED_IN]->(movie:Movie)
                 RETURN movie.Duration AS Duration, movie.Name AS Name, movie.YearOfRelease AS YearOfRelease, movie.Genre AS Genre,
-                movie.AvgScore as AvgScore, movie.Description as Description, movie.Image as Image, movie.Link as Link 
+                    movie.AvgScore as AvgScore, movie.Description as Description, movie.Image as Image, movie.Link as Link
             ";
 
             var result = await session.RunAsync(query, new {
@@ -578,14 +608,6 @@ public class MovieController : ControllerBase
                 actorLastName
             });
 
-            var duration = string.Empty;
-            var name = string.Empty;
-            var yearOfRelease = string.Empty;
-            var genre = string.Empty;
-            var avgScore = string.Empty;
-            var description = string.Empty;
-            var image = string.Empty;
-            var link = string.Empty;
             var movies = new List<Movie>();
             while (await result.FetchAsync())
             {
@@ -600,27 +622,41 @@ public class MovieController : ControllerBase
                     Image = result.Current["Image"].As<string>(),
                     Link = result.Current["Link"].As<string>()
                 };
-    
+
                 movies.Add(movie);
             }
- 
+
             return Ok(movies);
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             return BadRequest(e.Message);
         }
     }
-    [HttpGet("GetMoviesWithDirector/{directorFirstName}/{directorLastName}")] //vraca sve filmove sa trazenim direktorem 
+
+  [HttpGet("GetMoviesWithDirector/{directorFirstName}/{directorLastName}")]
     public async Task<ActionResult> GetMoviesWithDirector(string directorFirstName, string directorLastName)
     {
         try
         {
             using var session = _neo4jDriver.AsyncSession();
+
+            var checkDirectorQuery = @"
+                MATCH (d:Director {FirstName: $directorFirstName, LastName: $directorLastName})
+                RETURN d
+            ";
+
+            var directorResult = await session.RunAsync(checkDirectorQuery, new { directorFirstName, directorLastName });
+
+            if (!await directorResult.FetchAsync())
+            {
+                return NotFound("Director does not exist.");
+            }
+
             var query = @"
                 MATCH (:Director {FirstName: $directorFirstName, LastName: $directorLastName})-[:DIRECTED_IN]->(movie:Movie)
                 RETURN movie.Duration AS Duration, movie.Name AS Name, movie.YearOfRelease AS YearOfRelease, movie.Genre AS Genre,
-                movie.AvgScore as AvgScore, movie.Description as Description, movie.Image as Image, movie.Link as Link 
+                    movie.AvgScore as AvgScore, movie.Description as Description, movie.Image as Image, movie.Link as Link
             ";
 
             var result = await session.RunAsync(query, new {
@@ -642,17 +678,18 @@ public class MovieController : ControllerBase
                     Image = result.Current["Image"].As<string>(),
                     Link = result.Current["Link"].As<string>()
                 };
-    
+
                 movies.Add(movie);
             }
- 
+
             return Ok(movies);
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             return BadRequest(e.Message);
         }
     }
+
 
     [HttpGet("GetAllUniqueGenres")]
     public async Task<ActionResult> GetAllUniqueGenres()
